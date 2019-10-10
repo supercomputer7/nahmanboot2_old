@@ -6,7 +6,7 @@ class TerminalDriver {
 
 public:
     ~TerminalDriver();
-    bool initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color);
+    bool initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color,uint32_t col_limit,uint32_t row_limit);
     void write(const char* str);
     void clear();
 private:

@@ -5,11 +5,14 @@ TerminalDriver::~TerminalDriver()
 {
 }
 
-bool TerminalDriver::initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color)
+bool TerminalDriver::initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color,uint32_t col_limit,uint32_t row_limit)
 {
     this->vga = vga;
     this->background_color = background_color;
     this->foreground_color = foreground_color;
+    this->first_line();
+    this->column_limit = col_limit;
+    this->row_limit = row_limit;
     return true;
 }
 void TerminalDriver::clear()
@@ -33,31 +36,29 @@ void TerminalDriver::next_char()
 }
 void TerminalDriver::write(const char* str)
 {
-    for (int i = 0; i<(int)strlen(str);++i)
+    int i=0;
+    while(i<(int)strlen(str))
     {
-        
-        if(strlen(str) >= 2)
+        if(str[i] == '\n')
         {
-            if(str[i] == '/' && str[i+1] == 'n')
+            if(this->row == this->row_limit)
             {
-                i+=2;
-                if(this->row == this->row_limit)
-                {
-                    this->first_line();
-                }
-                else
-                {
-                    this->new_line();
-                }
-                continue;
+                this->first_line();
             }
+            else
+            {
+                this->new_line();   
+            }
+            i+=2;
+            continue;
         }
         if(this->column == this->column_limit)
         {
             this->new_line();
         }
-        this->vga->write(str[i],this->vga->get_color(this->foreground_color,this->background_color),this->column + (this->row * 80));
+
+        this->vga->write(str[i],this->vga->get_color(this->foreground_color,this->background_color),this->column + (this->row * this->vga->get_pitch()));
         this->next_char();
+        ++i;
     }
-    this->new_line();
 }
