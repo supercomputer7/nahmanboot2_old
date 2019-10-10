@@ -4,6 +4,7 @@ BOOTLOADER_OBJS = \
 	   Memory/Allocator.o \
 	   Display/StandardVGA.o \
 	   Display/TerminalDriver.o \
+	   ACPI/RSDP.o \
 	   LibC/stdstring.o
 
 OUTPUT = core.bin
