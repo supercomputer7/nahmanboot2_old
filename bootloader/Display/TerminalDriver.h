@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "StandardVGA.h"
+#include "../LibC/stdstring.h"
 
 class TerminalDriver {
 
@@ -9,6 +10,7 @@ public:
     bool initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color,uint32_t col_limit,uint32_t row_limit);
     void write(const char* str);
     void clear();
+    void exit();
 private:
 
     void new_line();

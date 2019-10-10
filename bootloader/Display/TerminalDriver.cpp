@@ -1,5 +1,4 @@
 #include "TerminalDriver.h"
-#include "../LibC/stdstring.h"
 
 TerminalDriver::~TerminalDriver()
 {
@@ -18,6 +17,12 @@ bool TerminalDriver::initialize(StandardVGA* vga,uint32_t foreground_color,uint3
 void TerminalDriver::clear()
 {
     this->vga->clear();
+}
+
+void TerminalDriver::exit()
+{
+    const char* menu_prepare = "Terminal Stopped\n";
+    this->write(menu_prepare);   
 }
 
 void TerminalDriver::new_line()
