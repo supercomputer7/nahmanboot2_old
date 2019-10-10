@@ -1,0 +1,27 @@
+#pragma once
+#include <stdint.h>
+#include "StandardVGA.h"
+
+class TerminalDriver {
+
+public:
+    ~TerminalDriver();
+    bool initialize(StandardVGA* vga,uint32_t foreground_color,uint32_t background_color);
+    void write(const char* str);
+    void clear();
+private:
+
+    void new_line();
+    void first_line();
+    void next_char();
+
+    StandardVGA* vga;
+    uint32_t foreground_color;
+    uint32_t background_color;
+
+    uint32_t column_limit;
+    uint32_t row_limit;
+
+    uint32_t column;
+    uint32_t row;
+};
