@@ -7,6 +7,7 @@ StandardVGA::~StandardVGA()
 bool StandardVGA::initialize(uint32_t addr,uint32_t pitch)
 {
     this->addr = (void*)addr;
+    this->pitch = pitch;
     return true;
 }
 
