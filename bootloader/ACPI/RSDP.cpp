@@ -30,10 +30,20 @@ uint32_t RSDP::find()
         return this->search_rsdt(addr,count);        
     }
 }
-RSDPDescriptor20* RSDP::get_rsdt()
+RSDPDescriptor20* RSDP::get_rsdp()
 {
     return (RSDPDescriptor20*)&this->cached_rsdp;
 }
+
+ACPI_RSDT* RSDP::get_rsdt()
+{
+    return (ACPI_RSDT*)this->get_rsdp()->firstPart.RsdtAddress;
+}
+ACPI_XSDT* RSDP::get_xsdt()
+{
+    return (ACPI_XSDT*)this->get_rsdp()->XsdtAddress;
+}
+
 uint32_t RSDP::search_rsdt(uint32_t addr,uint16_t count)
 {
     char *p = (char*)addr;
