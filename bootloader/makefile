@@ -2,6 +2,7 @@ BOOTLOADER_OBJS = \
        init.o \
        load.o \
 	   Memory/Allocator.o \
+	   Memory/malloc.o \
 	   Display/StandardVGA.o \
 	   Display/TerminalDriver.o \
 	   ACPI/RSDP.o \
