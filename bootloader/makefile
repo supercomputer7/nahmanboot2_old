@@ -5,16 +5,22 @@ BOOTLOADER_OBJS = \
 	   Display/StandardVGA.o \
 	   Display/TerminalDriver.o \
 	   ACPI/RSDP.o \
+	   ACPI/XSDT.o \
+	   ACPI/RSDT.o \
+	   ACPI/MCFG.o \
+	   PCI/MemoryAccess.o \
+	   PCI/IOAccess.o \
 	   LibC/stdstring.o
 
 OUTPUT = core.bin
 CXXFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti
+CXXFLAGS += -I./
 LDFLAGS = -T linker.ld -o myos.bin -ffreestanding -O2 -nostdlib -lgcc
 ASMFLAGS = -f elf32
-CXX = /home/liav/git-projects/nahmanboot2/toolchain/bin/i686-elf-g++
-LD = /home/liav/git-projects/nahmanboot2/toolchain/bin/i686-elf-g++
+CXX = i686-elf-g++
+LD = i686-elf-g++
 ASM = /usr/bin/nasm
-LINK = /home/liav/git-projects/nahmanboot2/toolchain/bin/i686-elf-g++
+LINK = i686-elf-g++
 
 .PHONY: all
 
