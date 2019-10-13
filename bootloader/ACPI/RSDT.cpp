@@ -1,4 +1,4 @@
-#include "RSDT.h"
+#include <ACPI/RSDT.h>
 
 RSDT::~RSDT()
 {

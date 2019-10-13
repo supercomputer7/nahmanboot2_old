@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include "StandardVGA.h"
-#include "../LibC/stdstring.h"
+#include <Display/StandardVGA.h>
+#include <LibC/stdstring.h>
 
 class TerminalDriver {
 

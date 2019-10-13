@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
-#include "../LibC/stdstring.h"
-#include "defs.h"
+#include <LibC/stdstring.h>
+#include <ACPI/defs.h>
 
 class XSDT {
 

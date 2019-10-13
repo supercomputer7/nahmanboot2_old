@@ -1,4 +1,4 @@
-#include "XSDT.h"
+#include <ACPI/XSDT.h>
 
 XSDT::~XSDT()
 {
