@@ -7,7 +7,6 @@ BOOTLOADER_OBJS = \
 	   ACPI/RSDP.o \
 	   ACPI/XSDT.o \
 	   ACPI/RSDT.o \
-	   ACPI/MCFG.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \
 	   LibC/stdstring.o
