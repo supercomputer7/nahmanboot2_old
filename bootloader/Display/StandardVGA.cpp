@@ -4,17 +4,18 @@ StandardVGA::~StandardVGA()
 {
 }
 
-bool StandardVGA::initialize(uint32_t addr,uint32_t pitch)
+void StandardVGA::initialize(uint32_t addr,uint32_t pitch, uint32_t foreground_color,uint32_t background_color)
 {
     this->addr = (void*)addr;
     this->pitch = pitch;
-    return true;
+    this->background_color = background_color;
+    this->foreground_color = foreground_color;
 }
 
 void StandardVGA::clear()
 {
     for(int i=0;i<MaxBytesPerScreen/2;++i)
-        *(uint16_t*)((uint32_t)this->addr + (uint32_t)(i << 1)) = 0x1f00 | 00;
+        *(uint16_t*)((uint32_t)this->addr + (uint32_t)(i << 1)) = (uint16_t)this->foreground_color << 8 | (uint16_t)this->background_color;
 }
 
 uint32_t StandardVGA::get_color(uint32_t foreground_color,uint32_t background_color)
