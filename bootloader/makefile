@@ -10,6 +10,8 @@ BOOTLOADER_OBJS = \
 	   ACPI/RSDT.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \
+	   PCI/Device.o \
+	   PCI/List.o \
 	   LibC/stdstring.o
 
 OUTPUT = core.bin
