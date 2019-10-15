@@ -8,6 +8,9 @@
 #include <Memory/malloc.h>
 #include <Memory/Node.h>
 
+#include <Disk/IDEController.h>
+#include <Disk/AHCIController.h>
+
 #include <Display/StandardVGA.h>
 #include <Display/TerminalDriver.h>
 #include <ACPI/RSDP.h>
@@ -24,11 +27,5 @@ void init();
 
 void halt();
 
-PCI::List* find_storage_devices(PCI::List* pci_devices);
-PCI::List* enum_devices(PCI::Access* access);
-
 PCI::Access* boot_acpi(RSDP* rsdp);
 PCI::Access* boot_nonacpi();
-
-PCI::Access* get_nonpcie_interface();
-PCI::Access* get_pcie_interface(ACPI_MCFG* mcfg);
