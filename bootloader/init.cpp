@@ -20,12 +20,14 @@ void init()
     RSDP* rsdp = new RSDP();
     PCI::Access* access;
     if(rsdp->initialize())
-        access = boot_acpi(terminal,rsdp);
+        access = boot_acpi(rsdp);
     else
-        access = boot_nonacpi(terminal);
+        access = boot_nonacpi();
     
     terminal->write("Probing PCI for Mass Storage Controllers...\n");
     PCI::List* list_devices = enum_devices(access);
+
+    PCI::List* storage_devices = find_storage_devices(list_devices);
 
 
     terminal->write("Preparing Devices...\n");
@@ -38,16 +40,43 @@ void halt()
     "hlt");
 }
 
+PCI::List* find_storage_devices(PCI::List* pci_devices)
+{
+    Node* node = new Node();
+    Node* tmp_node = node;
+
+    Node* device = pci_devices->get_devices();
+    int count = 0;
+    for(int i=0; i<(int)pci_devices->get_count();++i)
+    {
+        PCI::Device* device_node = (PCI::Device*)device->get_object();
+        if(device_node->get_class_code() == 0x1)
+        {
+            tmp_node->initialize((void*) device_node,NULL);
+            tmp_node->set_next(new Node());
+            tmp_node = tmp_node->get_next();
+            count++;
+        }
+        if((void*)device->get_next() == NULL)
+            break;
+        device = device->get_next();
+    }
+    PCI::List* list =  new PCI::List();
+    list->initialize(node,count);
+    return list;
+}
+
 PCI::List* enum_devices(PCI::Access* access)
 {
-    PCI::Device* devices[0];
+    Node* node = new Node();
+    Node* node_tmp = (Node*)node;
     int count = 0;
     if(access->access_type == PCIMemoryAccess)
     {
         PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
         uint8_t start_bus;
         uint8_t end_bus;
-        for(int seg=0;seg<pcie_access->get_segments_count();++seg)
+        for(int seg=0;seg<(int)pcie_access->get_segments_count();++seg)
         {
             start_bus = pcie_access->get_segment_start_bus(seg);
             end_bus = pcie_access->get_segment_end_bus(seg);
@@ -59,8 +88,11 @@ PCI::List* enum_devices(PCI::Access* access)
                     {
                         if(pcie_access->read(seg,bus,device,func,0) != 0xffff && pcie_access->read(seg,bus,device,func,2) != 0xffff)
                         {
-                            devices[count] = new PCI::Device();
-                            devices[count]->initialize(access,seg,bus,device,func);
+                            PCI::Device* tmp = new PCI::Device();
+                            node_tmp->initialize((void*)tmp,NULL);
+                            tmp->initialize(access,seg,bus,device,func);
+                            node_tmp->set_next(new Node());
+                            node_tmp = node_tmp->get_next();
                             count++;
                         }
                     }
@@ -82,8 +114,11 @@ PCI::List* enum_devices(PCI::Access* access)
                 {
                     if(pci_access->read(bus,device,func,0) != 0xffff && pci_access->read(bus,device,func,2) != 0xffff)
                     {
-                        devices[count] = new PCI::Device();
-                        devices[count]->initialize(access,0,bus,device,func);
+                        PCI::Device* tmp = new PCI::Device();
+                        node_tmp->initialize((void*)tmp,NULL);
+                        tmp->initialize(access,0,bus,device,func);
+                        node_tmp->set_next(new Node());
+                        node_tmp = node_tmp->get_next();
                         count++;
                     }
                 }
@@ -92,11 +127,11 @@ PCI::List* enum_devices(PCI::Access* access)
         
     }
     PCI::List* list =  new PCI::List();
-    list->initialize((PCI::Device*)devices[0],count);
+    list->initialize(node,count);
     return list;
 }
 
-PCI::Access* boot_acpi(TerminalDriver* terminal,RSDP* rsdp)
+PCI::Access* boot_acpi(RSDP* rsdp)
 {
     ACPI_MCFG* mcfg;
 
@@ -123,7 +158,7 @@ PCI::Access* boot_acpi(TerminalDriver* terminal,RSDP* rsdp)
         return get_pcie_interface(mcfg);
     }
 }
-PCI::Access* boot_nonacpi(TerminalDriver* terminal)
+PCI::Access* boot_nonacpi()
 {
     return (PCI::Access*)get_nonpcie_interface();
 }
