@@ -1,4 +1,6 @@
+#pragma once
 #include <stddef.h>
+#include <Memory/Allocator.h>
 
 void kmalloc_init();
 void* kmalloc(size_t size);

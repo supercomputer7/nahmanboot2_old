@@ -1,5 +1,3 @@
-
-#include <Memory/Allocator.h>
 #include <Memory/malloc.h>
 
 void kmalloc_init()
