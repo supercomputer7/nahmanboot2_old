@@ -2,6 +2,9 @@
 
 void kmalloc_init();
 void* kmalloc(size_t size);
+void* kcalloc(size_t size);
+void* current_allocation();
+
 inline void* operator new(size_t, void* p) { return p; }
 inline void* operator new[](size_t, void* p) { return p; }
 
