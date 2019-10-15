@@ -9,6 +9,7 @@ BOOTLOADER_OBJS = \
 	   ACPI/RSDP.o \
 	   ACPI/XSDT.o \
 	   ACPI/RSDT.o \
+	   PCI/Access.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \
 	   PCI/Device.o \
