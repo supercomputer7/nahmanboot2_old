@@ -1,15 +1,20 @@
 #pragma once
+#include <Memory/Node.h>
 #include <PCI/PCI.h>
 #include <PCI/Device.h>
 #include <stdint.h>
+#include <PCI/Access.h>
+#include <PCI/IOAccess.h>
+#include <PCI/MemoryAccess.h>
 class PCI::List{
 
 public:
     ~List();
-    void initialize(PCI::Device* devices,uint32_t count);
-    PCI::Device* get_devices();
+    void initialize(Node* devices,uint32_t count);
+    Node* get_devices();
     uint32_t get_count();
 private:
-    PCI::Device* devices;
+    Node* devices;
     uint32_t count;
 };
+

@@ -10,4 +10,5 @@ namespace PCI
     class IOAccess;
     class Device;
     class List;
+    uint32_t count(PCI::Access* access);
 }
