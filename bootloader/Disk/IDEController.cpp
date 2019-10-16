@@ -27,7 +27,8 @@ void IDEController::initialize(PCI::Device* device,PCI::Access* access)
         this->secondary_bus_io_port = ATA_SECONDARY_BUS_BASEIO;
     else
         this->secondary_bus_io_port = port2;
-    
+
+    this->type = IDE_DiskController;
 }
 bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
 {
@@ -73,7 +74,80 @@ bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
     }
     return true;
 }
+bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
+{
+    return true;
+}
+
 void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+{
+    if(lbah != 0)
+        this->read_lba48(is_primary,is_slave,lbal,lbah,buf,bytesCount);
+    else
+        this->read_lba28(is_primary,is_slave,lbal,buf,bytesCount);
+}
+void IDEController::read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+{
+    uint16_t port;
+    if(is_primary)
+        port = this->primary_bus_io_port;
+    else
+        port = this->secondary_bus_io_port;
+
+    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
+    uint16_t words = this->get_sector_size(is_primary,is_slave)/2;
+
+    if(is_slave)
+        IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
+    else
+        IO::outb(port + ATA_REG_DATA, 0xF0 | ((lbal >> 24) & 0x0F));
+    
+    IO::outb(port + 0x1, 0x00);
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)sectorcount);
+    IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbal));
+    IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbal >> 8));
+    IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbal >> 16));
+    IO::outb(port + ATA_REG_COMMAND, ATA_CMD_READ_PIO);
+
+    uint8_t input = IO::inb(port + ATA_REG_STATUS);
+    bool error = false;
+    if (input)
+    {
+        input = IO::inb(port + ATA_REG_STATUS);
+        while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
+        {
+            input = IO::inb(port + ATA_REG_STATUS);
+            if(((input & 0x1) != 0) || ((input & 0x20) != 0)) // error happened!
+            {
+                error = true;
+                break;
+            }
+        }
+        if(!error)
+        {
+            int count = 0;
+            for(int j=0; j<sectorcount; ++j)
+            {
+                for(uint16_t i=0; i < words; i++)
+                {
+                    buf[count] = IO::inw(port + ATA_REG_DATA); // transfer data
+                    ++count;         
+                }
+                this->do_400ns_delay();
+                input = IO::inb(port + ATA_REG_STATUS);
+                while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
+                {
+                    input = IO::inb(port + ATA_REG_STATUS);
+                }
+                for(int k=0; k<3; ++k)
+                {
+                    this->do_400ns_delay();
+                }
+            }
+        }
+    }
+}
+void IDEController::read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
 {
     uint16_t port;
     if(is_primary)

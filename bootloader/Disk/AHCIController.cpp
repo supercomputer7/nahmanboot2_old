@@ -17,6 +17,7 @@ void AHCIController::initialize(PCI::Device* device,PCI::Access* access)
                         device->get_function_number(),
                         AHCI_ABAR_BASE+2) << 16)
                     );
+	this->type = AHCI_DiskController;
 }
 bool AHCIController::probe_port_connected(uint8_t port)
 {

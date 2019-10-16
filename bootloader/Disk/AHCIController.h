@@ -1,7 +1,10 @@
 #pragma once
 #include <stdint.h>
 #include <LibC/stdbool.h>
+
+#include <Disk/GenericDiskController.h>
 #include <Disk/defs.h>
+
 #include <PCI/Device.h>
 #include <PCI/PCI.h>
 #include <IO/IO.h>
@@ -278,7 +281,7 @@ namespace AHCI
     } __attribute__((__packed__)) HBA_CMD_TBL;
 }
 
-class AHCIController {
+class AHCIController : public GenericDiskController {
 
 public:
     ~AHCIController();
@@ -287,6 +290,9 @@ public:
     bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_sector_size(uint8_t port);
 private:
+    void read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+    void read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+
     AHCI::HBA_PORT* get_port(uint8_t port);
     int find_freeslot(AHCI::HBA_PORT* port);
 
