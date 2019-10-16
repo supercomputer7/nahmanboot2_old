@@ -289,9 +289,10 @@ public:
     bool probe_port_connected(uint8_t port);
     bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_sector_size(uint8_t port);
+    uint8_t get_physical_logical_sector_alignment(uint8_t port);
 private:
-    void read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
-    void read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+    bool read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+    bool read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
 
     AHCI::HBA_PORT* get_port(uint8_t port);
     int find_freeslot(AHCI::HBA_PORT* port);

@@ -27,6 +27,13 @@ bool AHCIController::probe_port_connected(uint8_t port)
 }
 bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
 {
+	uint64_t lba = (lbal | (lbah << 32));
+    lba = lba << this->get_physical_logical_sector_alignment(port_number);
+	return this->read_ata(port_number,(uint32_t)lba,(uint32_t)(lba >> 32),buf,bytesCount);
+}
+
+bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+{
     AHCI::HBA_PORT* port = this->get_port(port_number);
     port->is = (uint32_t) -1;
 	int spin = 0; // Spin lock timeout counter
@@ -137,4 +144,9 @@ uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
 bool AHCIController::identify(uint8_t port,uint16_t* buf)
 {
 	return false; /* TODO: read ATA IDENTIFY data */
+}
+uint8_t AHCIController::get_physical_logical_sector_alignment(uint8_t port)
+{
+    /* TODO: get how many logical sectors per physical sectors */
+    return 0;
 }

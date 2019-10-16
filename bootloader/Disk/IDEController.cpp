@@ -81,10 +81,16 @@ bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
 
 void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
 {
-    if(lbah != 0)
-        this->read_lba48(is_primary,is_slave,lbal,lbah,buf,bytesCount);
+    uint64_t lba = (lbal | (lbah << 32));
+    lba = lba << this->get_physical_logical_sector_alignment(is_primary,is_slave);
+    if((uint32_t)(lba >> 32) != 0)
+        this->read_lba48(is_primary,is_slave,(uint32_t)lba,(uint32_t)(lba >> 32),buf,bytesCount);
     else
-        this->read_lba28(is_primary,is_slave,lbal,buf,bytesCount);
+        this->read_lba28(is_primary,is_slave,(uint32_t)lba,buf,bytesCount);
+}
+void IDEController::read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+{
+    
 }
 void IDEController::read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
 {
@@ -239,4 +245,11 @@ uint16_t IDEController::get_sector_size(bool is_primary,bool is_slave)
         return ATA_LOGICAL_SECTOR_SIZE << (this->cached_identify_data.physical_logical_sector & 0xf);
     else
         return ATA_LOGICAL_SECTOR_SIZE;
+}
+uint8_t IDEController::get_physical_logical_sector_alignment(bool is_primary,bool is_slave)
+{
+    if(this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data))
+        return (this->cached_identify_data.physical_logical_sector & 0xf);
+    else
+        return 0;
 }
