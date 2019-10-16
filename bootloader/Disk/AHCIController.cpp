@@ -33,7 +33,7 @@ bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16
 	if (slot == -1)
 		return false;
 
-    uint32_t sectorcount = bytesCount/512;
+    uint32_t sectorcount = this->get_sector_count(port_number,bytesCount);
  
 	AHCI::HBA_CMD_HEADER *cmdheader = (AHCI::HBA_CMD_HEADER*)port->clb;
 	cmdheader += slot;
@@ -122,13 +122,18 @@ int AHCIController::find_freeslot(AHCI::HBA_PORT* port)
 }
 uint16_t AHCIController::get_sector_size(uint8_t port)
 {
-
+	return 0; /* TODO: get sector size of device per port */
 }
 uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
 {
-
+	/* TODO: get count of sectors per bytes counts */
+    uint16_t sector_size =  ATA_LOGICAL_SECTOR_SIZE;
+    if(bytesCount % sector_size == 0)
+        return bytesCount/sector_size;
+    else
+        return (bytesCount/sector_size) + 1;
 }
 bool AHCIController::identify(uint8_t port,uint16_t* buf)
 {
-
+	return false; /* TODO: read ATA IDENTIFY data */
 }
