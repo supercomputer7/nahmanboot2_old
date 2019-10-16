@@ -164,11 +164,16 @@ void IDEController::read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint3
         IO::outb(port + ATA_REG_DATA, 0xF0 | ((lbal >> 24) & 0x0F));
     
     IO::outb(port + 0x1, 0x00);
-    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)sectorcount);
+
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount >> 8));
+    IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbah));
+    IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbah >> 8));
+    IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbah >> 16));
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount & 0xff));
     IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbal));
     IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbal >> 8));
     IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbal >> 16));
-    IO::outb(port + ATA_REG_COMMAND, ATA_CMD_READ_PIO);
+    IO::outb(port + ATA_REG_COMMAND, ATA_CMD_READ_PIO_EXT);
 
     uint8_t input = IO::inb(port + ATA_REG_STATUS);
     bool error = false;
