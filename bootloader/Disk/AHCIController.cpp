@@ -128,9 +128,22 @@ int AHCIController::find_freeslot(AHCI::HBA_PORT* port)
 	}
     return -1;
 }
-uint16_t AHCIController::get_sector_size(uint8_t port)
+uint16_t AHCIController::get_logical_sector_size(uint8_t port)
 {
-	return 0; /* TODO: get sector size of device per port */
+	this->identify(port,(uint16_t*)&this->cached_identify_data);
+    if(this->cached_identify_data.physical_logical_sector & (1 << 12) == 0)
+        return ATA_LOGICAL_SECTOR_SIZE;
+    if(this->cached_identify_data.logical_sector_size[0] == 0)
+        return ATA_LOGICAL_SECTOR_SIZE;
+    else
+        return this->cached_identify_data.logical_sector_size[0] << 1;
+}
+uint16_t AHCIController::get_physical_sector_size(uint8_t port)
+{
+	this->identify(port,(uint16_t*)&this->cached_identify_data);
+    uint16_t alignment = this->cached_identify_data.physical_logical_sector & 0xf;
+    uint16_t logical_sector_size = this->get_logical_sector_size(port);
+    return logical_sector_size << alignment;
 }
 uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
 {
@@ -141,12 +154,68 @@ uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
     else
         return (bytesCount/sector_size) + 1;
 }
-bool AHCIController::identify(uint8_t port,uint16_t* buf)
+bool AHCIController::identify(uint8_t port_number,uint16_t* buf)
 {
-	return false; /* TODO: read ATA IDENTIFY data */
+	AHCI::HBA_PORT* port = this->get_port(port_number);
+
+    port->is = (uint32_t) -1;
+	int spin = 0; // Spin lock timeout counter
+	int slot = this->find_freeslot(port);
+	if (slot == -1)
+		return false;
+ 
+	AHCI::HBA_CMD_HEADER *cmdheader = (AHCI::HBA_CMD_HEADER*)port->clb;
+	cmdheader += slot;
+	cmdheader->command = sizeof(AHCI::FIS_REG_H2D)/sizeof(uint32_t); // Command FIS size
+	cmdheader->prdtl = 1; // PRDT entries count
+
+
+	AHCI::HBA_CMD_TBL *cmdtbl = (AHCI::HBA_CMD_TBL*)(cmdheader->ctba);
+	cmdtbl->prdt_entry[0].dba = (uint32_t)buf;
+    cmdtbl->prdt_entry[0].info = ATA_LOGICAL_SECTOR_SIZE-1;
+ 
+	// Setup command
+	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl->cfis);
+	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
+	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
+	cmdfis->command = ATA_CMD_IDENTIFY;
+	cmdfis->device = 0;
+	cmdfis->h.attrs |= (1 << 7);
+ 
+	// The below loop waits until the port is no longer busy before issuing a new command
+	while ((port->tfd & (ATA_SR_BSY | ATA_SR_DRQ)) && spin < 1000000)
+	{
+		spin++;
+		if (spin == 1000000)
+		{
+			return false;
+		}
+	}
+
+	port->cmd |= (1 << 4) | (1 << 0);
+	port->ci = 1<<slot;	// Issue command
+ 
+	// Wait for completion
+	while (1)
+	{
+		// In some longer duration reads, it may be helpful to spin on the DPS bit 
+		// in the PxIS port field as well (1 << 5)
+		if ((port->ci & (1<<slot)) == 0) 
+			break;
+		if (port->is & AHCI_HBA_PxIS_TFES)	// Task file error
+		{
+			break;
+		}
+	}
+ 
+	// Check again
+	if (port->is & AHCI_HBA_PxIS_TFES)
+	{
+		return false;
+	}
+	return true;
 }
 uint8_t AHCIController::get_physical_logical_sector_alignment(uint8_t port)
 {
-    /* TODO: get how many logical sectors per physical sectors */
-    return 0;
+    return this->get_physical_sector_size(port) / this->get_logical_sector_size(port);
 }

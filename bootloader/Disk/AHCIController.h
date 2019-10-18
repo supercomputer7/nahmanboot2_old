@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <LibC/stdbool.h>
+#include <LibC/stdstring.h>
 
 #include <Disk/GenericDiskController.h>
 #include <Disk/defs.h>
@@ -262,7 +263,7 @@ namespace AHCI
         uint32_t rsv0;		// Reserved
     
         // DW3
-            uint32_t info;		// Byte count, 4M max | Reserved | Interrupt on completion
+        uint32_t info;		// Byte count, 4M max | Reserved | Interrupt on completion
     } __attribute__((__packed__)) HBA_PRDT_ENTRY;
 
     typedef struct tagHBA_CMD_TBL
@@ -288,7 +289,8 @@ public:
     void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(uint8_t port);
     bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
-    uint16_t get_sector_size(uint8_t port);
+    uint16_t get_logical_sector_size(uint8_t port);
+    uint16_t get_physical_sector_size(uint8_t port);
     uint8_t get_physical_logical_sector_alignment(uint8_t port);
 private:
     bool read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
@@ -298,7 +300,7 @@ private:
     int find_freeslot(AHCI::HBA_PORT* port);
 
     uint16_t get_sector_count(uint8_t port,uint16_t bytesCount);
-    bool identify(uint8_t port,uint16_t* buf);
+    bool identify(uint8_t port_number,uint16_t* buf);
     ATA_IDENTIFY_DATA cached_identify_data;
 
     AHCI::HBA_MEM* hba;

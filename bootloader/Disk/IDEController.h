@@ -16,7 +16,8 @@ public:
     void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(bool is_primary,bool is_slave);
     void read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
-    uint16_t get_sector_size(bool is_primary,bool is_slave);
+    uint16_t get_logical_sector_size(bool is_primary,bool is_slave);
+    uint16_t get_physical_sector_size(bool is_primary,bool is_slave);
     uint8_t get_physical_logical_sector_alignment(bool is_primary,bool is_slave);
 private:
     void read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount);
