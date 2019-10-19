@@ -38,6 +38,8 @@ xor eax,eax
 mov ax,0x70
 mov es,ax
 
+	xor esi,esi ; ESI is a counter
+
 	xor di,di
 	xor ebx,ebx
 	mov edx,0x534D4150
@@ -60,12 +62,20 @@ mov es,ax
 	je .end_detect_mem
 
 	int 0x15
-
+	inc esi
 	jc .end_detect_mem
 
 	jmp .loop_detect_e820
 
 .end_detect_mem:
+
+	xor eax,eax
+	mov ax,0x2000
+	mov es,ax
+	xor bx,bx
+	mov dword [es:bx],0x700
+	add bx,4
+	mov dword [es:bx],esi
 
 popa
 ret
