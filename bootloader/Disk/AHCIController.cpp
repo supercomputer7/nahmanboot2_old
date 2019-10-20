@@ -18,6 +18,8 @@ void AHCIController::initialize(PCI::Device* device,PCI::Access* access)
                         AHCI_ABAR_BASE+2) << 16)
                     );
 	this->type = AHCI_DiskController;
+	this->tmpbuffer = (uint8_t*)dma_calloc();
+	this->tmpbuffer_size = DMARegionSize;
 }
 bool AHCIController::probe_port_connected(uint8_t port)
 {
@@ -25,13 +27,52 @@ bool AHCIController::probe_port_connected(uint8_t port)
         return false;
     return (((this->hba->pi) >> port) & 0x1) == 1;
 }
-bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
-	uint64_t lba = (lbal | (lbah << 32));
-    lba = lba << this->get_physical_logical_sector_alignment(port_number);
-	return this->read_ata(port_number,(uint32_t)lba,(uint32_t)(lba >> 32),buf,bytesCount);
-}
+	uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(port_number));
+    uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(port_number);
 
+    if((offset_in_first_lba + bytesCount) <= this->tmpbuffer_size)
+        return this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,bytesCount);
+    else
+    {
+        uint32_t buffer_addr = (uint32_t)buf;
+
+        this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,(this->tmpbuffer_size - offset_in_first_lba));
+        uint16_t bytes_to_read = (bytesCount - this->tmpbuffer_size) + offset_in_first_lba;
+        while(bytes_to_read > 0)
+        {
+            lbal_offseted += (this->tmpbuffer_size / this->get_logical_sector_size(port_number));
+            buffer_addr += this->tmpbuffer_size;
+            if(bytes_to_read >= this->tmpbuffer_size)
+            {
+                if(this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,this->tmpbuffer_size) == false)
+					return false;
+            }
+            else
+            {
+                return this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,bytes_to_read);
+            }
+            bytes_to_read = bytes_to_read - this->tmpbuffer_size;
+        }
+    }
+	return true;
+}
+bool AHCIController::small_read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+{
+
+	if(this->read_ata(port_number,lbal,lbah,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size))
+	{
+		this->transfer_data(bytesOffset,bytesCount,(uint8_t*)buf);
+		return true;
+	}
+	return false;
+}
+void AHCIController::transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf)
+{
+    for(int i=0; i<bytesCount;++i)
+        buf[i] = this->tmpbuffer[offset + i];
+}
 bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
 {
     AHCI::HBA_PORT* port = this->get_port(port_number);
@@ -64,7 +105,7 @@ bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,ui
  
 	// Setup command
 	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl->cfis);
- 
+	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
 	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
 	cmdfis->h.attrs = 0x80;	// Command
 	cmdfis->command = ATA_CMD_READ_DMA_EXT;
@@ -130,18 +171,18 @@ int AHCIController::find_freeslot(AHCI::HBA_PORT* port)
 }
 uint16_t AHCIController::get_logical_sector_size(uint8_t port)
 {
-	this->identify(port,(uint16_t*)&this->cached_identify_data);
-    if(this->cached_identify_data.physical_logical_sector & (1 << 12) == 0)
+	this->identify(port,(uint16_t*)this->cached_identify_data);
+    if(this->cached_identify_data[106] & (1 << 12) == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
-    if(this->cached_identify_data.logical_sector_size[0] == 0)
+    if(this->cached_identify_data[117] == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
     else
-        return this->cached_identify_data.logical_sector_size[0] << 1;
+        return this->cached_identify_data[117] << 1;
 }
 uint16_t AHCIController::get_physical_sector_size(uint8_t port)
 {
 	this->identify(port,(uint16_t*)&this->cached_identify_data);
-    uint16_t alignment = this->cached_identify_data.physical_logical_sector & 0xf;
+    uint16_t alignment = this->cached_identify_data[106] & 0xf;
     uint16_t logical_sector_size = this->get_logical_sector_size(port);
     return logical_sector_size << alignment;
 }

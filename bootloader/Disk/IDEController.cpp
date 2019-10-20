@@ -28,6 +28,8 @@ void IDEController::initialize(PCI::Device* device,PCI::Access* access)
         this->secondary_bus_io_port = port2;
 
     this->type = IDE_DiskController;
+    this->tmpbuffer = (uint8_t*)dma_calloc();
+    this->tmpbuffer_size = DMARegionSize;
 }
 bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
 {
@@ -79,13 +81,57 @@ bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
     return true;
 }
 
-void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+{
+    uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(is_primary,is_slave));
+    uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(is_primary,is_slave);
+
+    if((offset_in_first_lba + bytesCount) <= this->tmpbuffer_size)
+        this->small_read(is_primary,is_slave,lbal_offseted,lbah,offset_in_first_lba,buf,bytesCount);
+    else
+    {
+        uint32_t buffer_addr = (uint32_t)buf;
+
+        this->small_read(is_primary,is_slave,lbal_offseted,lbah,offset_in_first_lba,buf,(this->tmpbuffer_size - offset_in_first_lba));
+        uint16_t bytes_to_read = (bytesCount - this->tmpbuffer_size) + offset_in_first_lba;
+        while(bytes_to_read > 0)
+        {
+            lbal_offseted += (this->tmpbuffer_size / this->get_logical_sector_size(is_primary,is_slave));
+            buffer_addr += this->tmpbuffer_size;
+            if(bytes_to_read >= this->tmpbuffer_size)
+            {
+                this->small_read(is_primary,is_slave,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,this->tmpbuffer_size);
+            }
+            else
+            {
+                this->small_read(is_primary,is_slave,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,bytes_to_read);
+                break;
+            }
+            bytes_to_read = bytes_to_read - this->tmpbuffer_size;
+        }
+    }
+}
+
+void IDEController::small_read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
     if(lbah != 0)
-        this->read_lba48(is_primary,is_slave,lbal,lbah,buf,bytesCount);
+    {
+        this->read_lba48(is_primary,is_slave,lbal,lbah,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
+        this->transfer_data(bytesOffset,bytesCount,(uint8_t*)buf);
+    }
     else
-        this->read_lba28(is_primary,is_slave,lbal,buf,bytesCount);
+    {
+        this->read_lba28(is_primary,is_slave,lbal,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
+        this->transfer_data(bytesOffset,bytesCount,(uint8_t*)buf);
+    }
 }
+
+void IDEController::transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf)
+{
+    for(int i=0; i<bytesCount;++i)
+        buf[i] = this->tmpbuffer[offset + i];
+}
+
 void IDEController::read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
 {
     

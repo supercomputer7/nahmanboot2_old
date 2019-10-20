@@ -10,6 +10,8 @@
 #include <PCI/PCI.h>
 #include <IO/IO.h>
 
+#include <Memory/malloc.h>
+
 #define AHCI_MAXIMUM_COMMAND_SLOTS 32
 
 #define AHCI_HBA_PxIS_TFES   (1 << 30)       /* TFES - Task File Error Status */
@@ -288,11 +290,14 @@ public:
     ~AHCIController();
     void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(uint8_t port);
-    bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+    bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_logical_sector_size(uint8_t port);
     uint16_t get_physical_sector_size(uint8_t port);
     uint8_t get_physical_logical_sector_alignment(uint8_t port);
 private:
+    bool small_read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
+    void transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf);
+
     bool read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
     bool read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
 
@@ -301,9 +306,12 @@ private:
 
     uint16_t get_sector_count(uint8_t port,uint16_t bytesCount);
     bool identify(uint8_t port_number,uint16_t* buf);
-    ATA_IDENTIFY_DATA cached_identify_data;
+    char cached_identify_data[sizeof(ATA_IDENTIFY_DATA)];
 
     AHCI::HBA_MEM* hba;
     PCI::Access* access;
     PCI::Device* device;
+
+    uint8_t* tmpbuffer;
+    uint16_t tmpbuffer_size;
 };

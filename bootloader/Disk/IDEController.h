@@ -9,17 +9,23 @@
 #include <PCI/PCI.h>
 #include <IO/IO.h>
 
+#include <Memory/malloc.h>
+
 class IDEController : public GenericDiskController {
 
 public:
     ~IDEController();
     void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(bool is_primary,bool is_slave);
-    void read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
+    void read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_logical_sector_size(bool is_primary,bool is_slave);
     uint16_t get_physical_sector_size(bool is_primary,bool is_slave);
     uint8_t get_physical_logical_sector_alignment(bool is_primary,bool is_slave);
 private:
+
+    void small_read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
+    void transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf);
+
     void read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount);
     void read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
     void read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount);
@@ -33,4 +39,7 @@ private:
     uint8_t bus_select;
     PCI::Access* access;
     PCI::Device* device;
+
+    uint8_t* tmpbuffer;
+    uint16_t tmpbuffer_size;
 };
