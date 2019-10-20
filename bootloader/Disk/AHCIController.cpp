@@ -27,7 +27,7 @@ bool AHCIController::probe_port_connected(uint8_t port)
         return false;
     return (((this->hba->pi) >> port) & 0x1) == 1;
 }
-bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
 	uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(port_number));
     uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(port_number);

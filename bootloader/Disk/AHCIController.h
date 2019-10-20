@@ -290,7 +290,7 @@ public:
     ~AHCIController();
     void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(uint8_t port);
-    bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
+    bool read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_logical_sector_size(uint8_t port);
     uint16_t get_physical_sector_size(uint8_t port);
     uint8_t get_physical_logical_sector_alignment(uint8_t port);

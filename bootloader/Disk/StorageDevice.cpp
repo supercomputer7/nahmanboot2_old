@@ -3,14 +3,14 @@ void StorageDevice::initialize(GenericDiskController* controller,uint32_t port)
 {
     this->disk_controller = controller;
     this->port = port;
-    this->read(0,0,(uint16_t*)&this->cached_mbr,512);
+    this->read(0,0,0,(uint16_t*)this->cached_mbr,512);
 }
-void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
     if(this->disk_controller->type == AHCI_DiskController)
     {
         AHCIController* controller = (AHCIController*)this->disk_controller;
-        controller->read(this->port,lbal,lbah,buf,bytesCount);
+        controller->read(this->port,lbal,lbah,bytesOffset,buf,bytesCount);
     }
     else if(this->disk_controller->type == NVMe_DiskController)
     {
@@ -22,16 +22,16 @@ void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t byte
         switch(this->port)
         {
             case 0:
-                controller->read(true,false,lbal,lbah,buf,bytesCount);
+                controller->read(true,false,lbal,lbah,bytesOffset,buf,bytesCount);
                 break;
             case 1:
-                controller->read(true,true,lbal,lbah,buf,bytesCount);
+                controller->read(true,true,lbal,lbah,bytesOffset,buf,bytesCount);
                 break;
             case 2:
-                controller->read(false,false,lbal,lbah,buf,bytesCount);
+                controller->read(false,false,lbal,lbah,bytesOffset,buf,bytesCount);
                 break;
             case 3:
-                controller->read(false,true,lbal,lbah,buf,bytesCount);
+                controller->read(false,true,lbal,lbah,bytesOffset,buf,bytesCount);
                 break;
             default:
                 break;

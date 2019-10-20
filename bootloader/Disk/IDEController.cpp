@@ -81,7 +81,7 @@ bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
     return true;
 }
 
-void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
     uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(is_primary,is_slave));
     uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(is_primary,is_slave);
