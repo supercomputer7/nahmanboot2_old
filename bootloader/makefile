@@ -13,6 +13,8 @@ BOOTLOADER_OBJS = \
 	   Disk/StorageDevice.o \
 	   Disk/IDEController.o \
 	   Disk/AHCIController.o \
+	   Filesystem/Partition.o \
+	   Filesystem/Ext2Filesystem.o \
 	   PCI/Access.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \
