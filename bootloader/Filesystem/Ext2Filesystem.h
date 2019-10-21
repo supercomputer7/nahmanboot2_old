@@ -259,7 +259,7 @@ private:
 
     uint32_t get_blockgroup_inodes_count();
     uint16_t get_inode_size();
-    uint16_t get_block_size();
+    uint16_t get_block_size() const;
     uint32_t get_first_usable_inode();
 
     uint32_t get_block_pointer(uint32_t offset);

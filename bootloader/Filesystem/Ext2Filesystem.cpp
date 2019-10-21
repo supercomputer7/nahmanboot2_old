@@ -117,8 +117,7 @@ void Ext2Filesystem::read_inode_data(uint32_t inode,char* buf,uint32_t bytesCoun
     uint32_t bytesToRead = bytesCount;
     uint32_t buffer = (uint32_t)buf;
     uint32_t block=0;
-    //*(uint32_t*)(0x70004) = this->get_blkpointers_count_by_bytes(bytesCount);
-
+    
     this->read_block1(this->get_cached_inode()->singly_indirect_blk_ptr);
 
     while(bytesToRead > 0)
@@ -239,7 +238,7 @@ uint16_t Ext2Filesystem::get_inode_size()
     else
         return Ext2FS_Inode_Fixed_Size;
 }
-uint16_t Ext2Filesystem::get_block_size()
+uint16_t Ext2Filesystem::get_block_size() const
 {
     return this->block_size;
 }
