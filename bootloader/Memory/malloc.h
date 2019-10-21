@@ -5,11 +5,16 @@
 
 #define BumpAllocatorLocation 0x2000
 #define DMABumpAllocatorLocation 0x2500
+#define CacheBumpAllocationLocation 0x3000
+
 #define E820_MemoryMapLocationDescriptor 0x20000
 #define DMARegionSize 16384
 #define NumberOfDMARegions 200
 
 void kmalloc_init();
+
+void cache_alloc_init(uint32_t addr);
+void* cache_calloc(size_t size);
 
 void dma_alloc_init(uint32_t addr);
 void* dma_calloc();
@@ -20,5 +25,8 @@ void* current_allocation();
 inline void* operator new(size_t, void* p) { return p; }
 inline void* operator new[](size_t, void* p) { return p; }
 
-inline void operator delete(__attribute__((unused)) void *p,size_t);
-inline void operator delete[](__attribute__((unused)) void *p,size_t);
+inline void operator delete(__attribute__((unused)) void* p);
+inline void operator delete[](__attribute__((unused)) void* p);
+
+inline void operator delete(__attribute__((unused)) void *p,__attribute__((unused)) size_t size);
+inline void operator delete[](__attribute__((unused)) void *p,__attribute__((unused)) size_t size);
