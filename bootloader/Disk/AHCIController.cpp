@@ -95,13 +95,13 @@ bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,ui
 	for (i=0; i<cmdheader->prdtl-1; i++)
 	{
 		cmdtbl->prdt_entry[i].dba = (uint32_t) buf;
-		cmdtbl->prdt_entry[i].info = (8*1024-1 & (0x3FFFFF)) | (1<<31);	// 8K bytes (this value should always be set to 1 less than the actual value)
+		cmdtbl->prdt_entry[i].info = ((8*1024-1) & (0x3FFFFF)) | (1<<31);	// 8K bytes (this value should always be set to 1 less than the actual value)
 		buf += 4*1024;	// 4K words
 		sectorcount -= 16;	// 16 sectors
 	}
 	// Last entry
 	cmdtbl->prdt_entry[i].dba = (uint32_t) buf;
-	cmdtbl->prdt_entry[i].info = ((sectorcount<<9)-1 & (0x3FFFFF)) | (1<<31);	// 512 bytes per sector
+	cmdtbl->prdt_entry[i].info = (((sectorcount<<9)-1) & (0x3FFFFF)) | (1<<31);	// 512 bytes per sector
  
 	// Setup command
 	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl->cfis);
@@ -172,7 +172,7 @@ int AHCIController::find_freeslot(AHCI::HBA_PORT* port)
 uint16_t AHCIController::get_logical_sector_size(uint8_t port)
 {
 	this->identify(port,(uint16_t*)this->cached_identify_data);
-    if(this->cached_identify_data[106] & (1 << 12) == 0)
+    if((this->cached_identify_data[106] & (1 << 12)) == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
     if(this->cached_identify_data[117] == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
@@ -188,10 +188,9 @@ uint16_t AHCIController::get_physical_sector_size(uint8_t port)
 }
 uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
 {
-	/* TODO: get count of sectors per bytes counts */
-    uint16_t sector_size =  ATA_LOGICAL_SECTOR_SIZE;
-    if(bytesCount % sector_size == 0)
-        return bytesCount/sector_size;
+    uint16_t sector_size =  this->get_logical_sector_size(port);
+    if((bytesCount % sector_size) == 0)
+        return (bytesCount/sector_size);
     else
         return (bytesCount/sector_size) + 1;
 }
