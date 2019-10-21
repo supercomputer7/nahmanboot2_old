@@ -13,6 +13,7 @@ void* Stack::pop()
 void Stack::push(void* object)
 {
     Node* node = new Node();
+    node->initialize(object,nullptr);
     node->set_next(head);
     head = node;
 }
