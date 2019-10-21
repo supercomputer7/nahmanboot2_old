@@ -28,8 +28,21 @@ void IDEController::initialize(PCI::Device* device,PCI::Access* access)
         this->secondary_bus_io_port = port2;
 
     this->type = IDE_DiskController;
+    this->bus_master_register = PCI::read(access,
+                                device->get_segment(),
+                                device->get_bus(),
+                                device->get_device_number(),
+                                device->get_function_number(),        
+                                0x20) | 
+                                PCI::read(access,
+                                device->get_segment(),
+                                device->get_bus(),
+                                device->get_device_number(),
+                                device->get_function_number(),        
+                                0x22);
     this->tmpbuffer = (uint8_t*)dma_calloc();
     this->tmpbuffer_size = DMARegionSize;
+    this->prdt = (ATA_DMA_PRDT*)dma_calloc();
 }
 bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
 {
@@ -78,7 +91,7 @@ bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
 }
 bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
 {
-    return true;
+    return this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
 }
 
 void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
@@ -116,14 +129,15 @@ void IDEController::small_read(bool is_primary,bool is_slave,uint32_t lbal,uint3
 {
     if(lbah != 0)
     {
-        this->read_lba48(is_primary,is_slave,lbal,lbah,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
+        this->read_dma_lba48(is_primary,is_slave,lbal,lbah,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
         this->transfer_data(bytesOffset,bytesCount,(uint8_t*)buf);
     }
     else
     {
-        this->read_lba28(is_primary,is_slave,lbal,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
+        this->read_dma_lba28(is_primary,is_slave,lbal,(uint16_t*)this->tmpbuffer,this->tmpbuffer_size);
         this->transfer_data(bytesOffset,bytesCount,(uint8_t*)buf);
     }
+    
 }
 
 void IDEController::transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf)
@@ -132,11 +146,171 @@ void IDEController::transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* b
         buf[i] = this->tmpbuffer[offset + i];
 }
 
-void IDEController::read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+
+void IDEController::enable_pci_bus_master()
 {
-    
+    uint16_t enabled_pci_bus_master = PCI::read(access,
+            device->get_segment(),
+            device->get_bus(),
+            device->get_device_number(),
+            device->get_function_number(),
+            0x4) | (1 << 2);
+
+    PCI::write(access,
+            device->get_segment(),
+            device->get_bus(),
+            device->get_device_number(),
+            device->get_function_number(),
+            0x4,enabled_pci_bus_master);
+
 }
-void IDEController::read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+
+void IDEController::disable_pci_bus_master()
+{
+    uint16_t enabled_pci_bus_master = PCI::read(access,
+            device->get_segment(),
+            device->get_bus(),
+            device->get_device_number(),
+            device->get_function_number(),
+            0x4) & (~(1 << 2));
+
+    PCI::write(access,
+            device->get_segment(),
+            device->get_bus(),
+            device->get_device_number(),
+            device->get_function_number(),
+            0x4,enabled_pci_bus_master);
+}
+
+void IDEController::read_dma_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+{
+    /* TODO: Check if bus master register is memory mapped or IO mapped */
+    this->enable_pci_bus_master();
+    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
+    prdt->byte_count = bytesCount;
+    prdt->data_buffer = (uint32_t)buf;
+    prdt->reserved = 0x8000;
+    uint32_t prdt_addr = (uint32_t)this->prdt;
+
+    uint16_t base = this->bus_master_register & (0xFFF0);
+    if(is_primary == false)
+        base += 8;
+    IO::outl((base+4),prdt_addr);    
+    IO::outb(base,0);
+    IO::outb(base,0x8);
+    IO::outb((base+2),IO::inb((base+2)) | 0x6);
+    
+    uint16_t port;
+    if(is_primary)
+        port = this->primary_bus_io_port;
+    else
+        port = this->secondary_bus_io_port;
+
+    if(is_slave)
+        IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
+    else
+        IO::outb(port + ATA_REG_DATA, 0xF0 | ((lbal >> 24) & 0x0F));
+    this->do_400ns_delay();
+
+    //IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount >> 8));
+    //IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbah));
+    //IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbah >> 8));
+    //IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbah >> 16));
+    IO::outb(port + 0x1, 0x00);
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount & 0xff));
+    IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbal));
+    IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbal >> 8));
+    IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbal >> 16));
+    IO::outb(port + ATA_REG_COMMAND, ATA_CMD_READ_DMA);
+    for (;;) {
+        uint8_t status = IO::inb(port + ATA_REG_STATUS);
+        if (!(status & ATA_SR_BSY) && (status & ATA_SR_DRDY))
+            break;
+    }    
+    this->do_400ns_delay();
+    IO::outb(base,(0x1 | 0x8));
+
+    while (1) {
+        int status = IO::inb(base+2);
+        int dstatus = IO::inb(port + ATA_REG_STATUS);
+        if (!(status & 0x04)) {
+            continue;
+        }
+        if (!(dstatus & 0x80)) {
+            break;
+        }
+    }
+
+    IO::outb(base + 2, IO::inb(base + 2) | 0x6);
+}
+
+void IDEController::read_dma_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+{
+    /* TODO: Check if bus master register is memory mapped or IO mapped */
+    this->enable_pci_bus_master();
+    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
+    prdt->byte_count = bytesCount;
+    prdt->data_buffer = (uint32_t)buf;
+    prdt->reserved = 0x8000;
+    uint32_t prdt_addr = (uint32_t)this->prdt;
+
+    uint16_t base = this->bus_master_register & (0xFFF0);
+    if(is_primary == false)
+        base += 8;
+    IO::outl((base+4),prdt_addr);    
+    IO::outb(base,0);
+    IO::outb(base,0x8);
+    IO::outb((base+2),IO::inb((base+2)) | 0x6);
+    
+    uint16_t port;
+    if(is_primary)
+        port = this->primary_bus_io_port;
+    else
+        port = this->secondary_bus_io_port;
+
+    if(is_slave)
+        IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
+    else
+        IO::outb(port + ATA_REG_DATA, 0xF0 | ((lbal >> 24) & 0x0F));
+    this->do_400ns_delay();
+
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount >> 8));
+    IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbah));
+    IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbah >> 8));
+    IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbah >> 16));
+    IO::outb(port + 0x1, 0x00);
+    IO::outb(port + ATA_REG_SECCOUNT0,(uint8_t)(sectorcount & 0xff));
+    IO::outb(port + ATA_REG_LBA0, (uint8_t)(lbal));
+    IO::outb(port + ATA_REG_LBA1, (uint8_t)(lbal >> 8));
+    IO::outb(port + ATA_REG_LBA2, (uint8_t)(lbal >> 16));
+    IO::outb(port + ATA_REG_COMMAND, ATA_CMD_READ_DMA_EXT);
+    for (;;) {
+        uint8_t status = IO::inb(port + ATA_REG_STATUS);
+        if (!(status & ATA_SR_BSY) && (status & ATA_SR_DRDY))
+            break;
+    }    
+    this->do_400ns_delay();
+    IO::outb(base,(0x1 | 0x8));
+
+    while (1) {
+        int status = IO::inb(base+2);
+        int dstatus = IO::inb(port + ATA_REG_STATUS);
+        if (!(status & 0x04)) {
+            continue;
+        }
+        if (!(dstatus & 0x80)) {
+            break;
+        }
+    }
+
+    IO::outb(base + 2, IO::inb(base + 2) | 0x6);
+}
+
+//void IDEController::read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
+//{
+//    
+//}
+void IDEController::read_pio_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
 {
     uint16_t port;
     if(is_primary)
@@ -183,7 +357,7 @@ void IDEController::read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint1
                     buf[count] = IO::inw(port + ATA_REG_DATA); // transfer data
                     ++count;         
                 }
-                this->do_400ns_delay();
+                //this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
@@ -191,13 +365,13 @@ void IDEController::read_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint1
                 }
                 for(int k=0; k<3; ++k)
                 {
-                    this->do_400ns_delay();
+                    //this->do_400ns_delay();
                 }
             }
         }
     }
 }
-void IDEController::read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
+void IDEController::read_pio_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount)
 {
     uint16_t port;
     if(is_primary)
@@ -249,7 +423,7 @@ void IDEController::read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint3
                     buf[count] = IO::inw(port + ATA_REG_DATA); // transfer data
                     ++count;         
                 }
-                this->do_400ns_delay();
+                //this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
@@ -257,7 +431,7 @@ void IDEController::read_lba48(bool is_primary,bool is_slave,uint32_t lbal,uint3
                 }
                 for(int k=0; k<3; ++k)
                 {
-                    this->do_400ns_delay();
+                    //this->do_400ns_delay();
                 }
             }
         }
@@ -286,7 +460,7 @@ uint16_t IDEController::get_sector_count(bool is_primary,bool is_slave,uint16_t 
 uint16_t IDEController::get_logical_sector_size(bool is_primary,bool is_slave)
 {
     this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
-    if(this->cached_identify_data.physical_logical_sector & (1 << 12) == 0)
+    if((this->cached_identify_data.physical_logical_sector & (1 << 12)) == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
     if(this->cached_identify_data.logical_sector_size[0] == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
