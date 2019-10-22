@@ -234,11 +234,14 @@ class Ext2Filesystem {
 public:
     ~Ext2Filesystem();
     void initialize(DevicePartition* partition);
+    uint32_t get_file_size(const char* filename);
     bool read(const char* filename,uint16_t* buf,uint32_t bytesCount);
-    uint32_t get_filesize(uint32_t inode);
+    uint32_t find_file(const char* filename);
     uint32_t get_element_length(const char* str);
     const char* get_next_foldername(const char* str);
 private:
+    uint32_t get_inode_filesize(uint32_t inode);
+    
     Ext2::Extended_Superblock* get_superblock();
     Ext2::Inode* get_cached_inode();
     char* get_cached_block();

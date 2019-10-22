@@ -20,7 +20,31 @@ void Ext2Filesystem::initialize(DevicePartition* partition)
 
     this->block_size = (Ext2FS_Base_Blocksize << this->get_superblock()->basic_superblock.block_size);
 }
+uint32_t Ext2Filesystem::get_file_size(const char* filename)
+{
+    uint32_t inode = this->find_file(filename);
+    if(inode != 0xFFFFFFFF)
+        return this->get_inode_filesize(inode);
+    else
+        return 0;
+}
+
 bool Ext2Filesystem::read(const char* filename,uint16_t* buf,uint32_t bytesCount)
+{
+    uint32_t inode_num = this->find_file(filename);
+    if(inode_num == 0xFFFFFFFF)
+        return false;
+    uint32_t filesize;
+    if(bytesCount == 0)
+        filesize = this->get_inode_filesize(inode_num);
+    else
+        filesize = bytesCount;
+    this->read_inode_data(inode_num,(char*)buf,filesize);
+    return true;
+
+}
+
+uint32_t Ext2Filesystem::find_file(const char* filename)
 {
     const char* tmp = filename;
     if(tmp[0] == '/')
@@ -37,28 +61,13 @@ bool Ext2Filesystem::read(const char* filename,uint16_t* buf,uint32_t bytesCount
         current_element_length = this->get_element_length(tmp);
         inode_num = this->get_inode_in_directory(directory_inode,(tmp),current_element_length);
         if(inode_num == 0xFFFFFFFF)
-            return false;
+            return 0xFFFFFFFF;
         tmp = this->get_next_foldername(tmp);
         if(tmp[0] == '/')
             tmp = &tmp[1];
         directory_inode = inode_num;
     }
-
-    if(inode_num == 0xFFFFFFFF)
-        return false;
-    uint32_t filesize;
-    if(bytesCount == 0)
-        filesize = this->get_filesize(inode_num);
-    else
-        filesize = bytesCount;
-    this->read_inode_data(inode_num,(char*)buf,filesize);
-    return true;
-
-}
-uint32_t Ext2Filesystem::get_filesize(uint32_t inode)
-{
-    this->read_inode(inode);
-    return (this->get_cached_inode()->disk_sectors_used_count * this->partition->get_sector_size());
+    return inode_num;
 }
 uint32_t Ext2Filesystem::get_element_length(const char* str)
 {
@@ -91,6 +100,12 @@ const char* Ext2Filesystem::get_next_foldername(const char* str)
     return (str+i);
 }
 
+uint32_t Ext2Filesystem::get_inode_filesize(uint32_t inode)
+{
+    this->read_inode(inode);
+    return (this->get_cached_inode()->disk_sectors_used_count * this->partition->get_sector_size());
+}
+
 Ext2::Extended_Superblock* Ext2Filesystem::get_superblock()
 {
     return (Ext2::Extended_Superblock*)this->cached_superblock;
@@ -114,21 +129,25 @@ void Ext2Filesystem::read_inode_data(uint32_t inode,char* buf,uint32_t bytesCoun
     uint16_t block_size = this->get_block_size();
     uint32_t offset_blk_ptr = 0;
     this->read_inode(inode);
-    uint32_t bytesToRead = bytesCount;
+
+    uint32_t count;
+    if((bytesCount % block_size) == 0)
+        count = bytesCount/block_size;
+    else
+        count = (bytesCount/block_size) + 1;
+    
     uint32_t buffer = (uint32_t)buf;
     uint32_t block=0;
     
-    this->read_block1(this->get_cached_inode()->singly_indirect_blk_ptr);
-
-    while(bytesToRead > 0)
+    while(count > 0)
     {
         block = this->get_block_pointer(offset_blk_ptr);
         if(block != 0xFFFFFFFF)
         {
             this->read_block_to_buffer((char*)buffer,block);
-            buffer += this->get_block_size();
+            count = count - 1;
         }
-        bytesToRead -= (block_size*1);
+        buffer += (uint32_t)this->get_block_size();
         offset_blk_ptr += 1;
     }
 }
@@ -148,8 +167,11 @@ void Ext2Filesystem::read_inode(uint32_t inode)
 }
 void Ext2Filesystem::read_block_to_buffer(char* buf,uint32_t block1)
 {
+    uint32_t block_size = this->get_block_size();
     if(block1 != 0xFFFFFFFF)
-        this->partition->read(0,0,(block1*this->get_block_size()),(uint16_t*)buf,this->get_block_size());
+    {
+        this->partition->read(0,0,(block1*block_size),(uint16_t*)buf,block_size);
+    }
 }
 
 void Ext2Filesystem::read_data_block(uint32_t block)
