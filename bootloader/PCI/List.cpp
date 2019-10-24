@@ -1,11 +1,11 @@
 #include <PCI/List.h>
 
-void PCI::List::initialize(Node* devices,uint32_t count)
+void PCI::List::initialize(Node<PCI::Device>* devices,uint32_t count)
 {
     this->devices = devices;
     this->count = count;
 }
-Node* PCI::List::get_devices()
+Node<PCI::Device>* PCI::List::get_devices()
 {
     return this->devices;
 }

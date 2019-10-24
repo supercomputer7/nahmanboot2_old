@@ -2,15 +2,30 @@
 #include <stdint.h>
 #include <Memory/malloc.h>
 
+template<typename T> 
 class Node {
 
 public:
-    ~Node();
-    void initialize(void* object, Node* next);
-    Node* get_next();
-    void* get_object();
-    void set_next(Node* next);
+    ~Node();    
+    Node<T>* get_next()
+    {
+        return this->next;
+    }
+    T* get_object()
+    {
+        return this->object;
+    }
+    void set_next(Node<T>* next)
+    {
+        this->next = next;
+    }
+    void initialize(T* object, Node<T>* next)
+    {
+        this->object = object;
+        this->next = next;
+    }
 private:
+    
     Node* next;
-    void* object;
+    T* object;
 };

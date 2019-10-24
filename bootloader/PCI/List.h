@@ -10,11 +10,11 @@ class PCI::List{
 
 public:
     ~List();
-    void initialize(Node* devices,uint32_t count);
-    Node* get_devices();
+    void initialize(Node<PCI::Device>* devices,uint32_t count);
+    Node<PCI::Device>* get_devices();
     uint32_t get_count();
 private:
-    Node* devices;
+    Node<PCI::Device>* devices;
     uint32_t count;
 };
 

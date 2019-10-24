@@ -39,18 +39,18 @@ void PCI::write(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint
 
 PCI::List* PCI::find_storage_devices(PCI::List* pci_devices)
 {
-    Node* node = new Node();
-    Node* tmp_node = node;
+    Node<PCI::Device>* node = new Node<PCI::Device>();
+    Node<PCI::Device>* tmp_node = node;
 
-    Node* device = pci_devices->get_devices();
+    Node<PCI::Device>* device = pci_devices->get_devices();
     int count = 0;
     for(int i=0; i<(int)pci_devices->get_count();++i)
     {
         PCI::Device* device_node = (PCI::Device*)device->get_object();
         if(device_node->get_class_code() == 0x1)
         {
-            tmp_node->initialize((void*) device_node,NULL);
-            tmp_node->set_next(new Node());
+            tmp_node->initialize(device_node,NULL);
+            tmp_node->set_next(new Node<PCI::Device>());
             tmp_node = tmp_node->get_next();
             count++;
         }
@@ -65,8 +65,8 @@ PCI::List* PCI::find_storage_devices(PCI::List* pci_devices)
 
 PCI::List* PCI::enum_devices(PCI::Access* access)
 {
-    Node* node = new Node();
-    Node* node_tmp = (Node*)node;
+    Node<PCI::Device>* node = new Node<PCI::Device>();
+    Node<PCI::Device>* node_tmp = node;
     int count = 0;
     if(access->access_type == PCIMemoryAccess)
     {
@@ -86,9 +86,9 @@ PCI::List* PCI::enum_devices(PCI::Access* access)
                         if(pcie_access->read(seg,bus,device,func,0) != 0xffff && pcie_access->read(seg,bus,device,func,2) != 0xffff)
                         {
                             PCI::Device* tmp = new PCI::Device();
-                            node_tmp->initialize((void*)tmp,NULL);
+                            node_tmp->initialize(tmp,NULL);
                             tmp->initialize(access,seg,bus,device,func);
-                            node_tmp->set_next(new Node());
+                            node_tmp->set_next(new Node<PCI::Device>());
                             node_tmp = node_tmp->get_next();
                             count++;
                         }
@@ -112,9 +112,9 @@ PCI::List* PCI::enum_devices(PCI::Access* access)
                     if(pci_access->read(bus,device,func,0) != 0xffff && pci_access->read(bus,device,func,2) != 0xffff)
                     {
                         PCI::Device* tmp = new PCI::Device();
-                        node_tmp->initialize((void*)tmp,NULL);
+                        node_tmp->initialize(tmp,NULL);
                         tmp->initialize(access,0,bus,device,func);
-                        node_tmp->set_next(new Node());
+                        node_tmp->set_next(new Node<PCI::Device>());
                         node_tmp = node_tmp->get_next();
                         count++;
                     }
