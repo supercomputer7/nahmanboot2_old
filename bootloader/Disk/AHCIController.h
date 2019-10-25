@@ -13,6 +13,7 @@
 #include <Memory/malloc.h>
 
 #define AHCI_MAXIMUM_COMMAND_SLOTS 32
+#define AHCI_MAXIMUM_PORTS 32
 
 #define AHCI_HBA_PxIS_TFES   (1 << 30)       /* TFES - Task File Error Status */
 #define AHCI_ABAR_BASE 0x24

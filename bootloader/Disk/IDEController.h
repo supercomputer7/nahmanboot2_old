@@ -22,6 +22,7 @@ class IDEController : public GenericDiskController {
 public:
     IDEController(PCI::Device* device,PCI::Access* access);
     ~IDEController();
+    bool probe_numbered_port_connected(uint8_t port);
     bool probe_port_connected(bool is_primary,bool is_slave);
     void read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_logical_sector_size(bool is_primary,bool is_slave);

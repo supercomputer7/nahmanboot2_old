@@ -92,6 +92,21 @@ bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
     }
     return true;
 }
+bool IDEController::probe_numbered_port_connected(uint8_t port)
+{
+    switch (port)
+    {
+        case 0:
+            return this->identify(true,false,(uint16_t*)&this->cached_identify_data);
+        case 1:
+            return this->identify(true,true,(uint16_t*)&this->cached_identify_data);
+        case 2:
+            return this->identify(false,false,(uint16_t*)&this->cached_identify_data);
+        case 3:
+            return this->identify(false,true,(uint16_t*)&this->cached_identify_data);
+    }
+    return false;
+}
 bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
 {
     return this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
