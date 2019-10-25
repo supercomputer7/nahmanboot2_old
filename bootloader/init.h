@@ -7,19 +7,29 @@
 #include <Memory/Allocator.h>
 #include <Memory/malloc.h>
 #include <Memory/Node.h>
+#include <Memory/List.h>
 
+#include <Disk/StorageDevice.h>
+#include <Disk/GenericDiskController.h>
 #include <Disk/IDEController.h>
 #include <Disk/AHCIController.h>
+#include <Disk/Disk.h>
 
-#include <Display/StandardVGA.h>
-#include <Display/TerminalDriver.h>
+#include <Filesystem/Partition.h>
+#include <Filesystem/Ext2Filesystem.h>
+
+#include <Parsers/ELF32Parser.h>
+
+#include <Kernels/MultibootKernel.h>
+
+#include <Display/Print.h>
+
 #include <ACPI/RSDP.h>
 #include <ACPI/XSDT.h>
 #include <ACPI/RSDT.h>
 
 #include <PCI/IOAccess.h>
 #include <PCI/MemoryAccess.h>
-#include <PCI/List.h>
 #include <PCI/Device.h>
 
 extern "C" void kmain();

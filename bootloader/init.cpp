@@ -3,19 +3,16 @@
 extern "C" void kmain()
 {
     kmalloc_init();
+    dma_alloc_init(E820_MemoryMapLocationDescriptor);
+    cache_alloc_init(E820_MemoryMapLocationDescriptor);
+    stdout::init();
     init();
 }
 
 void init()
 {
-    StandardVGA* screen = new StandardVGA();
-    screen->initialize(0xb8000,80,0,0xf);
-
-    TerminalDriver* terminal = new TerminalDriver();
-    terminal->initialize((StandardVGA*)screen,0,0xf,80,25);
-    terminal->clear();
-
-    terminal->write("Nahmanboot (VGA 80x25), Initializing...\n");
+    
+    stdout::print("Nahmanboot (VGA 80x25), Initializing...\n");
 
     RSDP* rsdp = new RSDP();
     PCI::Access* access;
@@ -24,12 +21,15 @@ void init()
     else
         access = boot_nonacpi();
     
-    terminal->write("Probing PCI for Mass Storage Controllers...\n");
-    PCI::List* list_devices = PCI::enum_devices(access);
-    PCI::List* storage_devices = PCI::find_storage_devices(list_devices);
-    terminal->write("Preparing Devices...\n");
+    stdout::print("Probing PCI for Mass Storage Controllers...\n");
+    List<PCI::Device>* pci_devices = PCI::enum_devices(access);
+    List<PCI::Device>* pci_storage_devices = PCI::find_storage_devices(pci_devices);
+    stdout::print("Preparing Devices...\n");
+
+    List<GenericDiskController>* controllers = Disk::enum_storage_controllers(pci_storage_devices,access);
+    List<StorageDevice>* storage_devices = Disk::enum_storage_devices(controllers);
     
-    terminal->exit();
+    stdout::exit();
 }
 
 void halt()
