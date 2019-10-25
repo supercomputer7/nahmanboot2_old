@@ -26,6 +26,10 @@ public:
         }
         return tmp;
     }
+    Node<T>* get_last_node()
+    {
+        return this->tail;
+    }
     uint32_t get_count()
     {
         return this->count;
@@ -34,8 +38,45 @@ public:
     {
         this->count = count;
         this->list = list;
+        this->tail = list;
+    }
+    void insert_node(T* object)
+    {
+        if(this->list == nullptr)
+        {
+            this->list = new Node<T>();
+            this->tail = list;
+        }
+        else
+        {
+            tail->set_next(new Node<T>());
+            this->tail = tail->get_next();
+        }
+        tail->initialize(object,nullptr);
+        this->count++;
+    }
+    void adpot_node(Node<T>* node)
+    {
+        if(this->list == nullptr)
+        {
+            this->list = node;
+            this->tail = list;
+        }
+        else
+        {
+            tail->set_next(node);
+        }
+        this->count++;
+    }
+    void adpot_list(List<T>* list)
+    {
+        for(uint32_t i=0; i < list->get_count(); i++)
+        {
+            this->insert_node(list->get_node(i)->get_object());
+        }
     }
 private:
     uint32_t count;
     Node<T>* list;
+    Node<T>* tail;
 };
