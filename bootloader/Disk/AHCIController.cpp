@@ -1,4 +1,8 @@
 #include <Disk/AHCIController.h>
+AHCIController::AHCIController(PCI::Device* device,PCI::Access* access)
+{
+	this->initialize(device,access);
+}
 void AHCIController::initialize(PCI::Device* device,PCI::Access* access)
 {
     this->access = access;

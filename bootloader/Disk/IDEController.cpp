@@ -1,5 +1,8 @@
 #include <Disk/IDEController.h>
-
+IDEController::IDEController(PCI::Device* device,PCI::Access* access)
+{
+    this->initialize(device,access);
+}
 void IDEController::initialize(PCI::Device* device,PCI::Access* access)
 {
     this->device = device;

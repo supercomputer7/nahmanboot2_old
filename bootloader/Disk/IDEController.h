@@ -20,14 +20,15 @@ typedef struct {
 class IDEController : public GenericDiskController {
 
 public:
+    IDEController(PCI::Device* device,PCI::Access* access);
     ~IDEController();
-    void initialize(PCI::Device* device,PCI::Access* access);
     bool probe_port_connected(bool is_primary,bool is_slave);
     void read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
     uint16_t get_logical_sector_size(bool is_primary,bool is_slave);
     uint16_t get_physical_sector_size(bool is_primary,bool is_slave);
     uint8_t get_physical_logical_sector_alignment(bool is_primary,bool is_slave);
 private:
+    void initialize(PCI::Device* device,PCI::Access* access);
     void enable_pci_bus_master();
     void disable_pci_bus_master();
 
