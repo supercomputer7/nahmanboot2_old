@@ -3,21 +3,24 @@ BOOTLOADER_OBJS = \
        load.o \
 	   Memory/Allocator.o \
 	   Memory/malloc.o \
+	   Display/Print.o \
 	   Display/StandardVGA.o \
 	   Display/TerminalDriver.o \
 	   ACPI/RSDP.o \
 	   ACPI/XSDT.o \
 	   ACPI/RSDT.o \
+	   Disk/Disk.o \
 	   Disk/StorageDevice.o \
 	   Disk/IDEController.o \
 	   Disk/AHCIController.o \
 	   Filesystem/Partition.o \
 	   Filesystem/Ext2Filesystem.o \
+	   Kernels/MultibootKernel.o \
+	   Parsers/ELF32Parser.o \
 	   PCI/Access.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \
 	   PCI/Device.o \
-	   PCI/List.o \
 	   LibC/stdstring.o
 
 OUTPUT = core.bin
