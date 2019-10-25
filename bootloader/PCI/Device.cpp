@@ -7,7 +7,7 @@
 
 void PCI::Device::initialize(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function)
 {
-    if(access->access_type == PCIMemoryAccess)
+    if(access->get_access_type() == PCIMemoryAccess)
     {
         PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
         if(pcie_access->read(seg,bus,device,function,0) != 0xffff && pcie_access->read(seg,bus,device,function,2) != 0xffff)
@@ -26,7 +26,7 @@ void PCI::Device::initialize(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_
             this->set_revision_id(pcie_access->read(seg,bus,device,function,8) & 0xFF);
         }
     }
-    else if(access->access_type == PCIIOAccess)
+    else if(access->get_access_type() == PCIIOAccess)
     {
         PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
         if(pci_access->read(bus,device,function,0) != 0xffff && pci_access->read(bus,device,function,2) != 0xffff)

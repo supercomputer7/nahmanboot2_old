@@ -3,7 +3,7 @@
 #include <PCI/Access.h>
 #include <stdint.h>
 
-class PCI::MemoryAccess : public PCI::Access {
+class PCI::MemoryAccess : protected PCI::Access {
 
 public:
     ~MemoryAccess();

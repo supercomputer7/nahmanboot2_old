@@ -1,74 +1,51 @@
 #include <PCI/Access.h>
+#include <PCI/Device.h>
 #include <PCI/defs.h>
 #include <PCI/PCI.h>
 #include <PCI/IOAccess.h>
 #include <PCI/MemoryAccess.h>
-#include <PCI/List.h>
 
 #include <stdint.h>
 #include <stddef.h>
 #include <Memory/Node.h>
 
+uint8_t PCI::Access::get_access_type()
+{
+    return this->access_type;
+}
+
 uint16_t PCI::read(PCI::Access* access, uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset)
 {
-    if(access->access_type == PCIMemoryAccess)
-    {
-        PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
-        return pcie_access->read(seg,bus,device,func,offset);
-    }
-    else if(access->access_type == PCIIOAccess)
-    {
-        PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
-        return pci_access->read(bus,device,func,offset);
-    }
+    if(access->get_access_type() == PCIMemoryAccess)
+        return reinterpret_cast<PCI::MemoryAccess*>(access)->read(seg,bus,device,func,offset);
+    else if(access->get_access_type() == PCIIOAccess)
+        return reinterpret_cast<PCI::IOAccess*>(access)->read(bus,device,func,offset);
     return 0xffff;
 }
 void PCI::write(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset,uint16_t value)
 {
-    if(access->access_type == PCIMemoryAccess)
-    {
-        PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
-        pcie_access->write(seg,bus,device,func,offset,value);
-    }
-    else if(access->access_type == PCIIOAccess)
-    {
-        PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
-        pci_access->write(bus,device,func,offset,value);
-    }
+    if(access->get_access_type() == PCIMemoryAccess)
+        reinterpret_cast<PCI::MemoryAccess*>(access)->write(seg,bus,device,func,offset,value);
+    else if(access->get_access_type() == PCIIOAccess)
+        reinterpret_cast<PCI::IOAccess*>(access)->write(bus,device,func,offset,value);
 }
 
-PCI::List* PCI::find_storage_devices(PCI::List* pci_devices)
+List<PCI::Device>* PCI::find_storage_devices(List<PCI::Device>* pci_devices)
 {
-    Node<PCI::Device>* node = new Node<PCI::Device>();
-    Node<PCI::Device>* tmp_node = node;
-
-    Node<PCI::Device>* device = pci_devices->get_devices();
-    int count = 0;
+    List<PCI::Device>* tmp = new List<PCI::Device>(nullptr,0);
     for(int i=0; i<(int)pci_devices->get_count();++i)
     {
-        PCI::Device* device_node = (PCI::Device*)device->get_object();
-        if(device_node->get_class_code() == 0x1)
-        {
-            tmp_node->initialize(device_node,NULL);
-            tmp_node->set_next(new Node<PCI::Device>());
-            tmp_node = tmp_node->get_next();
-            count++;
-        }
-        if((void*)device->get_next() == NULL)
-            break;
-        device = device->get_next();
+        PCI::Device* device = pci_devices->get_node(i)->get_object();
+        if(device->get_class_code() == 0x1)
+            tmp->insert_node(device);
     }
-    PCI::List* list =  new PCI::List();
-    list->initialize(node,count);
-    return list;
+    return tmp;
 }
 
-PCI::List* PCI::enum_devices(PCI::Access* access)
+List<PCI::Device>* PCI::enum_devices(PCI::Access* access)
 {
-    Node<PCI::Device>* node = new Node<PCI::Device>();
-    Node<PCI::Device>* node_tmp = node;
-    int count = 0;
-    if(access->access_type == PCIMemoryAccess)
+    List<PCI::Device>* tmp_list = new List<PCI::Device>(nullptr,0);
+    if(access->get_access_type() == PCIMemoryAccess)
     {
         PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
         uint8_t start_bus;
@@ -86,11 +63,8 @@ PCI::List* PCI::enum_devices(PCI::Access* access)
                         if(pcie_access->read(seg,bus,device,func,0) != 0xffff && pcie_access->read(seg,bus,device,func,2) != 0xffff)
                         {
                             PCI::Device* tmp = new PCI::Device();
-                            node_tmp->initialize(tmp,NULL);
                             tmp->initialize(access,seg,bus,device,func);
-                            node_tmp->set_next(new Node<PCI::Device>());
-                            node_tmp = node_tmp->get_next();
-                            count++;
+                            tmp_list->insert_node(tmp);
                         }
                     }
                 }
@@ -98,7 +72,7 @@ PCI::List* PCI::enum_devices(PCI::Access* access)
         }
         
     }
-    else if(access->access_type == PCIIOAccess)
+    else if(access->get_access_type() == PCIIOAccess)
     {
         PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
         uint8_t start_bus = 0x0;
@@ -112,20 +86,15 @@ PCI::List* PCI::enum_devices(PCI::Access* access)
                     if(pci_access->read(bus,device,func,0) != 0xffff && pci_access->read(bus,device,func,2) != 0xffff)
                     {
                         PCI::Device* tmp = new PCI::Device();
-                        node_tmp->initialize(tmp,NULL);
                         tmp->initialize(access,0,bus,device,func);
-                        node_tmp->set_next(new Node<PCI::Device>());
-                        node_tmp = node_tmp->get_next();
-                        count++;
+                        tmp_list->insert_node(tmp);
                     }
                 }
             }
         }
         
     }
-    PCI::List* list =  new PCI::List();
-    list->initialize(node,count);
-    return list;
+    return tmp_list;
 }
 
 PCI::Access* PCI::get_nonpcie_interface()
