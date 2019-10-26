@@ -18,7 +18,7 @@
 #include <Filesystem/Partition.h>
 #include <Filesystem/Ext2Filesystem.h>
 
-#include <Parsers/ELF32Parser.h>
+#include <Parsers/ELF/ELF32Parser.h>
 
 #include <Kernels/MultibootKernel.h>
 

@@ -4,7 +4,7 @@
 
 #include <Memory/E820.h>
 #include <Memory/malloc.h>
-#include <Parsers/ELF.h>
+#include <Parsers/ELF/ELF.h>
 
 namespace MultibootProtocol {
 

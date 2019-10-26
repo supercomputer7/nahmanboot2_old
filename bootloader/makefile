@@ -16,7 +16,7 @@ BOOTLOADER_OBJS = \
 	   Filesystem/Partition.o \
 	   Filesystem/Ext2Filesystem.o \
 	   Kernels/MultibootKernel.o \
-	   Parsers/ELF32Parser.o \
+	   Parsers/ELF/ELF32Parser.o \
 	   PCI/Access.o \
 	   PCI/MemoryAccess.o \
 	   PCI/IOAccess.o \

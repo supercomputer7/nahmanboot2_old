@@ -1,4 +1,4 @@
-#include <Parsers/ELF32Parser.h>
+#include <Parsers/ELF/ELF32Parser.h>
 #include <LibC/stdstring.h>
 void ELF32Parser::parse(Elf32MainHeader* main_header,uint32_t section_data)
 {
