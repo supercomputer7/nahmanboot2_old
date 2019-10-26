@@ -1,5 +1,5 @@
 #include <Disk/IDEController.h>
-IDEController::IDEController(PCI::Device* device,PCI::Access* access)
+IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController(IDE_DiskController)
 {
     this->initialize(device,access);
 }
@@ -30,7 +30,6 @@ void IDEController::initialize(PCI::Device* device,PCI::Access* access)
     else
         this->secondary_bus_io_port = port2;
 
-    this->type = IDE_DiskController;
     this->bus_master_register = PCI::read(access,
                                 device->get_segment(),
                                 device->get_bus(),

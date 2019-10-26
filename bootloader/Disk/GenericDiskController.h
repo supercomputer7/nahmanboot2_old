@@ -10,7 +10,15 @@ class GenericDiskController {
 
 public:
     ~GenericDiskController();
-    uint16_t type;
+    explicit GenericDiskController(uint16_t type)
+    {
+        this->type = type;
+    }
+    uint16_t get_controller_type()
+    {
+        return this->type;
+    }
 private:
+    uint16_t type;
     
 };

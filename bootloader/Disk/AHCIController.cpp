@@ -1,5 +1,5 @@
 #include <Disk/AHCIController.h>
-AHCIController::AHCIController(PCI::Device* device,PCI::Access* access)
+AHCIController::AHCIController(PCI::Device* device,PCI::Access* access) : GenericDiskController(AHCI_DiskController)
 {
 	this->initialize(device,access);
 }
@@ -21,7 +21,6 @@ void AHCIController::initialize(PCI::Device* device,PCI::Access* access)
                         device->get_function_number(),
                         AHCI_ABAR_BASE+2) << 16)
                     );
-	this->type = AHCI_DiskController;
 	this->tmpbuffer = (uint8_t*)dma_calloc();
 	this->tmpbuffer_size = DMARegionSize;
 }

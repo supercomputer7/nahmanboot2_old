@@ -1,4 +1,7 @@
 #include <Disk/Disk.h>
+#include <Disk/GenericDiskController.h>
+#include <Disk/IDEController.h>
+#include <Disk/AHCIController.h>
 
 List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* devices, PCI::Access* access)
 {
@@ -15,7 +18,7 @@ List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* d
             controller =  new AHCIController(devices->get_node(i)->get_object(),access);            
         else
         {
-            controller = new GenericDiskController();
+            controller = new GenericDiskController(0);
         }
         list->insert_node(controller);
     }
@@ -26,7 +29,7 @@ List<StorageDevice>* Disk::enum_storage_controller(Node<GenericDiskController>* 
 {
     List<StorageDevice>* tmp = new List<StorageDevice>(nullptr,0);
 
-    if(storage_controller->get_object()->type ==  IDE_DiskController)
+    if(storage_controller->get_object()->get_controller_type() ==  IDE_DiskController)
     {
         IDEController* controller = (IDEController*)storage_controller->get_object();
         for(int i=0 ;i<4;i++)
@@ -40,7 +43,7 @@ List<StorageDevice>* Disk::enum_storage_controller(Node<GenericDiskController>* 
             }
         }
     }
-    else if (storage_controller->get_object()->type ==  AHCI_DiskController)
+    else if (storage_controller->get_object()->get_controller_type() ==  AHCI_DiskController)
     {
         AHCIController* controller = (AHCIController*)storage_controller->get_object();
         for(int i=0 ;i<AHCI_MAXIMUM_PORTS;i++)
@@ -53,7 +56,7 @@ List<StorageDevice>* Disk::enum_storage_controller(Node<GenericDiskController>* 
             }
         }
     }
-    else if (storage_controller->get_object()->type ==  NVMe_DiskController)
+    else if (storage_controller->get_object()->get_controller_type() ==  NVMe_DiskController)
     {
         /* TODO: Add NVMe Support */
     }

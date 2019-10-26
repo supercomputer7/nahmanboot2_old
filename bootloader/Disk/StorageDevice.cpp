@@ -7,16 +7,16 @@ void StorageDevice::initialize(GenericDiskController* controller,uint32_t port)
 }
 void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
-    if(this->disk_controller->type == AHCI_DiskController)
+    if(this->disk_controller->get_controller_type() == AHCI_DiskController)
     {
         AHCIController* controller = (AHCIController*)this->disk_controller;
         controller->read(this->port,lbal,lbah,bytesOffset,buf,bytesCount);
     }
-    else if(this->disk_controller->type == NVMe_DiskController)
+    else if(this->disk_controller->get_controller_type() == NVMe_DiskController)
     {
         /* TODO: Implement read from NVMe Device */
     }
-    else if(this->disk_controller->type == IDE_DiskController)
+    else if(this->disk_controller->get_controller_type() == IDE_DiskController)
     {
         IDEController* controller = (IDEController*)this->disk_controller;
         switch(this->port)
@@ -40,16 +40,16 @@ void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16
 }
 uint16_t StorageDevice::get_sector_size()
 {
-    if(this->disk_controller->type == AHCI_DiskController)
+    if(this->disk_controller->get_controller_type() == AHCI_DiskController)
     {
         AHCIController* controller = (AHCIController*)this->disk_controller;
         return controller->get_logical_sector_size(this->port);
     }
-    else if(this->disk_controller->type == NVMe_DiskController)
+    else if(this->disk_controller->get_controller_type() == NVMe_DiskController)
     {
         return 0xffff; /* TODO: Implement getting sector size from NVMe Device */
     }
-    else if(this->disk_controller->type == IDE_DiskController)
+    else if(this->disk_controller->get_controller_type() == IDE_DiskController)
     {
         IDEController* controller = (IDEController*)this->disk_controller;
         switch(this->port)
