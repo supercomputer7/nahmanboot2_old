@@ -1,8 +1,5 @@
 #include <Disk/Disk.h>
-#include <Disk/GenericDiskController.h>
-#include <Disk/IDEController.h>
-#include <Disk/AHCIController.h>
-
+#include <LibC/stdbool.h>
 List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* devices, PCI::Access* access)
 {
     List<GenericDiskController>* list = new List<GenericDiskController>(nullptr,0);
@@ -18,7 +15,7 @@ List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* d
             controller =  new AHCIController(devices->get_node(i)->get_object(),access);            
         else
         {
-            controller = new GenericDiskController(0);
+            controller = new GenericDiskController();
         }
         list->insert_node(controller);
     }
@@ -28,35 +25,21 @@ List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* d
 List<StorageDevice>* Disk::enum_storage_controller(Node<GenericDiskController>* storage_controller)
 {
     List<StorageDevice>* tmp = new List<StorageDevice>(nullptr,0);
-
-    if(storage_controller->get_object()->get_controller_type() ==  IDE_DiskController)
+    if(storage_controller->get_object()->get_controller_type() == IDEStorageController )
     {
         IDEController* controller = (IDEController*)storage_controller->get_object();
         for(int i=0 ;i<4;i++)
-        {
-            if(controller->probe_numbered_port_connected(i))
-            {
-                StorageDevice* tmp_device = new StorageDevice();
-                
-                tmp_device->initialize(controller,i);
-                tmp->insert_node(tmp_device);
-            }
-        }
+            if(controller->probe_port_connected(i))
+                tmp->insert_node(new ATADevice(controller,(uint8_t)i));
     }
-    else if (storage_controller->get_object()->get_controller_type() ==  AHCI_DiskController)
+    else if (storage_controller->get_object()->get_controller_type() == AHCIStorageController)
     {
         AHCIController* controller = (AHCIController*)storage_controller->get_object();
-        for(int i=0 ;i<AHCI_MAXIMUM_PORTS;i++)
-        {
+        for(uint8_t i=0 ;i<AHCI_MAXIMUM_PORTS;++i)
             if(controller->probe_port_connected(i))
-            {
-                StorageDevice* tmp_device = new StorageDevice();
-                tmp_device->initialize(controller,i);
-                tmp->insert_node(tmp_device);
-            }
-        }
+                tmp->insert_node(new SATADevice(controller,i));
     }
-    else if (storage_controller->get_object()->get_controller_type() ==  NVMe_DiskController)
+    else if (storage_controller->get_object()->get_controller_type() ==  NVMeStorageController)
     {
         /* TODO: Add NVMe Support */
     }

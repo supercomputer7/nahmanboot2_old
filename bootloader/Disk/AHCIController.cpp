@@ -1,7 +1,12 @@
 #include <Disk/AHCIController.h>
-AHCIController::AHCIController(PCI::Device* device,PCI::Access* access) : GenericDiskController(AHCI_DiskController)
+AHCIController::AHCIController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
 {
 	this->initialize(device,access);
+}
+
+uint16_t AHCIController::get_controller_type()
+{
+	return AHCIStorageController;
 }
 void AHCIController::initialize(PCI::Device* device,PCI::Access* access)
 {
@@ -28,39 +33,44 @@ bool AHCIController::probe_port_connected(uint8_t port)
 {
     if(port > 31)
         return false;
-    return (((this->hba->pi) >> port) & 0x1) == 1;
+	else
+		return (((this->hba->pi) >> port) & 0x1) == 1;
 }
-bool AHCIController::read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+bool AHCIController::read(uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
-	uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(port_number));
-    uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(port_number);
+	if(commandset == ATACommandSet)
+	{
+		uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(port_number));
+    	uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(port_number);
 
-    if((offset_in_first_lba + bytesCount) <= this->tmpbuffer_size)
-        return this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,bytesCount);
-    else
-    {
-        uint32_t buffer_addr = (uint32_t)buf;
+    	if((offset_in_first_lba + bytesCount) <= this->tmpbuffer_size)
+    	    return this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,bytesCount);
+    	else
+    	{
+    	    uint32_t buffer_addr = (uint32_t)buf;
 
-        this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,(this->tmpbuffer_size - offset_in_first_lba));
-        uint16_t bytes_to_read = (bytesCount - this->tmpbuffer_size) + offset_in_first_lba;
-        while(bytes_to_read > 0)
-        {
-            lbal_offseted += (this->tmpbuffer_size / this->get_logical_sector_size(port_number));
-            buffer_addr += this->tmpbuffer_size;
-            if(bytes_to_read >= this->tmpbuffer_size)
-            {
-                if(this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,this->tmpbuffer_size) == false)
-					return false;
-            }
-            else
-            {
-                return this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,bytes_to_read);
-            }
-            bytes_to_read = bytes_to_read - this->tmpbuffer_size;
-        }
-    }
-	return true;
-}
+    	    this->small_read(port_number,lbal_offseted,lbah,offset_in_first_lba,buf,(this->tmpbuffer_size - offset_in_first_lba));
+    	    uint16_t bytes_to_read = (bytesCount - this->tmpbuffer_size) + offset_in_first_lba;
+    	    while(bytes_to_read > 0)
+    	    {
+    	        lbal_offseted += (this->tmpbuffer_size / this->get_logical_sector_size(port_number));
+    	        buffer_addr += this->tmpbuffer_size;
+    	        if(bytes_to_read >= this->tmpbuffer_size)
+    	        {
+    	            if(this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,this->tmpbuffer_size) == false)
+						return false;
+    	        }
+    	        else
+    	        {
+    	            return this->small_read(port_number,lbal_offseted,lbah,0,(uint16_t*)buffer_addr,bytes_to_read);
+    	        }
+    	        bytes_to_read = bytes_to_read - this->tmpbuffer_size;
+    	    }
+    	}
+		return true;
+	}
+	return false;
+}	
 bool AHCIController::small_read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
 
@@ -85,7 +95,7 @@ bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,ui
 	if (slot == -1)
 		return false;
 
-    uint32_t sectorcount = this->get_sector_count(port_number,bytesCount);
+    uint32_t sectorcount = this->get_sectors_per_bytes_count(port_number,bytesCount);
  
 	AHCI::HBA_CMD_HEADER *cmdheader = (AHCI::HBA_CMD_HEADER*)port->clb;
 	cmdheader += slot;
@@ -174,6 +184,11 @@ int AHCIController::find_freeslot(AHCI::HBA_PORT* port)
 }
 uint16_t AHCIController::get_logical_sector_size(uint8_t port)
 {
+	AHCI::HBA_PORT* port_ptr = this->get_port(port);
+	if(port_ptr->sig != 0x00000101)
+	{
+		return 0xffff;
+	}
 	this->identify(port,(uint16_t*)this->cached_identify_data);
     if((this->cached_identify_data[106] & (1 << 12)) == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
@@ -189,7 +204,7 @@ uint16_t AHCIController::get_physical_sector_size(uint8_t port)
     uint16_t logical_sector_size = this->get_logical_sector_size(port);
     return logical_sector_size << alignment;
 }
-uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
+uint16_t AHCIController::get_sectors_per_bytes_count(uint8_t port,uint16_t bytesCount)
 {
     uint16_t sector_size =  this->get_logical_sector_size(port);
     if((bytesCount % sector_size) == 0)
@@ -199,6 +214,68 @@ uint16_t AHCIController::get_sector_count(uint8_t port,uint16_t bytesCount)
 }
 bool AHCIController::identify(uint8_t port_number,uint16_t* buf)
 {
+	AHCI::HBA_PORT* port = this->get_port(port_number);
+
+    port->is = (uint32_t) -1;
+	int spin = 0; // Spin lock timeout counter
+	int slot = this->find_freeslot(port);
+	if (slot == -1)
+		return false;
+ 
+	AHCI::HBA_CMD_HEADER *cmdheader = (AHCI::HBA_CMD_HEADER*)port->clb;
+	cmdheader += slot;
+	cmdheader->command = sizeof(AHCI::FIS_REG_H2D)/sizeof(uint32_t); // Command FIS size
+	cmdheader->prdtl = 1; // PRDT entries count
+
+
+	AHCI::HBA_CMD_TBL *cmdtbl = (AHCI::HBA_CMD_TBL*)(cmdheader->ctba);
+	cmdtbl->prdt_entry[0].dba = (uint32_t)buf;
+    cmdtbl->prdt_entry[0].info = ATA_LOGICAL_SECTOR_SIZE-1;
+ 
+	// Setup command
+	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl->cfis);
+	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
+	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
+	cmdfis->command = ATA_CMD_IDENTIFY;
+	cmdfis->device = 0;
+	cmdfis->h.attrs |= (1 << 7);
+ 
+	// The below loop waits until the port is no longer busy before issuing a new command
+	while ((port->tfd & (ATA_SR_BSY | ATA_SR_DRQ)) && spin < 1000000)
+	{
+		spin++;
+		if (spin == 1000000)
+		{
+			return false;
+		}
+	}
+
+	port->cmd |= (1 << 4) | (1 << 0);
+	port->ci = 1<<slot;	// Issue command
+ 
+	// Wait for completion
+	while (1)
+	{
+		// In some longer duration reads, it may be helpful to spin on the DPS bit 
+		// in the PxIS port field as well (1 << 5)
+		if ((port->ci & (1<<slot)) == 0) 
+			break;
+		if (port->is & AHCI_HBA_PxIS_TFES)	// Task file error
+		{
+			break;
+		}
+	}
+ 
+	// Check again
+	if (port->is & AHCI_HBA_PxIS_TFES)
+	{
+		return false;
+	}
+	return true;
+}
+bool AHCIController::identify_atapi(uint8_t port_number,uint16_t* buf)
+{
+	/* TODO: Fix ATAPI IDENTIFY to actually work */
 	AHCI::HBA_PORT* port = this->get_port(port_number);
 
     port->is = (uint32_t) -1;

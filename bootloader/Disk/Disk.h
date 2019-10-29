@@ -5,7 +5,11 @@
 #include <stdint.h>
 #include <PCI/PCI.h>
 #include <PCI/Device.h>
+
 #include <Disk/StorageDevice.h>
+#include <Disk/ATADevice.h>
+#include <Disk/SATADevice.h>
+#include <Disk/GenericDiskController.h>
 
 namespace Disk {
     List<GenericDiskController>* enum_storage_controllers(List<PCI::Device>* devices, PCI::Access* access);

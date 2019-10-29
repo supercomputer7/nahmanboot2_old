@@ -1,7 +1,11 @@
 #include <Disk/IDEController.h>
-IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController(IDE_DiskController)
+IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
 {
     this->initialize(device,access);
+}
+uint16_t IDEController::get_controller_type()
+{
+	return IDEStorageController;
 }
 void IDEController::initialize(PCI::Device* device,PCI::Access* access)
 {
@@ -91,7 +95,7 @@ bool IDEController::identify(bool is_primary,bool is_slave,uint16_t* buf)
     }
     return true;
 }
-bool IDEController::probe_numbered_port_connected(uint8_t port)
+bool IDEController::probe_port_connected(uint8_t port)
 {
     switch (port)
     {
@@ -106,15 +110,48 @@ bool IDEController::probe_numbered_port_connected(uint8_t port)
     }
     return false;
 }
-bool IDEController::probe_port_connected(bool is_primary,bool is_slave)
+bool IDEController::native_probe_port_connected(bool is_primary,bool is_slave)
 {
     return this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
 }
 
-void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+bool IDEController::read(uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
-    uint32_t lbal_offseted = lbal + (bytesOffset / this->get_logical_sector_size(is_primary,is_slave));
-    uint16_t offset_in_first_lba = bytesOffset % this->get_logical_sector_size(is_primary,is_slave);
+    if(commandset == ATACommandSet)
+    {
+        bool primary, slave;
+        switch(port_number)
+        {
+            case 0:
+                primary = true;
+                slave = false;
+                break;
+            case 1:
+                primary = true;
+                slave = true;
+                break;
+            case 2:
+                primary = false;
+                slave = false;
+                break;
+            case 3:
+                primary = false;
+                slave = true;
+                break;
+            default:
+                return false;
+        }
+        this->native_read(primary,slave,lbal,lbah,bytesOffset,buf,bytesCount);
+        return true;
+    }
+    return false;
+    
+}
+
+void IDEController::native_read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+{
+    uint32_t lbal_offseted = lbal + (bytesOffset / this->native_get_logical_sector_size(is_primary,is_slave));
+    uint16_t offset_in_first_lba = bytesOffset % this->native_get_logical_sector_size(is_primary,is_slave);
 
     if((offset_in_first_lba + bytesCount) <= this->tmpbuffer_size)
         this->small_read(is_primary,is_slave,lbal_offseted,lbah,offset_in_first_lba,buf,bytesCount);
@@ -126,7 +163,7 @@ void IDEController::read(bool is_primary,bool is_slave,uint32_t lbal,uint32_t lb
         uint16_t bytes_to_read = (bytesCount - this->tmpbuffer_size) + offset_in_first_lba;
         while(bytes_to_read > 0)
         {
-            lbal_offseted += (this->tmpbuffer_size / this->get_logical_sector_size(is_primary,is_slave));
+            lbal_offseted += (this->tmpbuffer_size / this->native_get_logical_sector_size(is_primary,is_slave));
             buffer_addr += this->tmpbuffer_size;
             if(bytes_to_read >= this->tmpbuffer_size)
             {
@@ -203,7 +240,7 @@ void IDEController::read_dma_lba28(bool is_primary,bool is_slave,uint32_t lbal,u
 {
     /* TODO: Check if bus master register is memory mapped or IO mapped */
     this->enable_pci_bus_master();
-    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
+    uint16_t sectorcount = this->get_sectors_per_bytes_count(is_primary,is_slave,bytesCount);
     prdt->byte_count = bytesCount;
     prdt->data_buffer = (uint32_t)buf;
     prdt->reserved = 0x8000;
@@ -265,7 +302,7 @@ void IDEController::read_dma_lba48(bool is_primary,bool is_slave,uint32_t lbal,u
 {
     /* TODO: Check if bus master register is memory mapped or IO mapped */
     this->enable_pci_bus_master();
-    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
+    uint16_t sectorcount = this->get_sectors_per_bytes_count(is_primary,is_slave,bytesCount);
     prdt->byte_count = bytesCount;
     prdt->data_buffer = (uint32_t)buf;
     prdt->reserved = 0x8000;
@@ -323,10 +360,6 @@ void IDEController::read_dma_lba48(bool is_primary,bool is_slave,uint32_t lbal,u
     IO::outb(base + 2, IO::inb(base + 2) | 0x6);
 }
 
-//void IDEController::read_atapi(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
-//{
-//    
-//}
 void IDEController::read_pio_lba28(bool is_primary,bool is_slave,uint32_t lbal,uint16_t* buf,uint16_t bytesCount)
 {
     uint16_t port;
@@ -335,8 +368,8 @@ void IDEController::read_pio_lba28(bool is_primary,bool is_slave,uint32_t lbal,u
     else
         port = this->secondary_bus_io_port;
 
-    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
-    uint16_t words = this->get_logical_sector_size(is_primary,is_slave)/2;
+    uint16_t sectorcount = this->get_sectors_per_bytes_count(is_primary,is_slave,bytesCount);
+    uint16_t words = this->native_get_logical_sector_size(is_primary,is_slave)/2;
 
     if(is_slave)
         IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
@@ -374,15 +407,11 @@ void IDEController::read_pio_lba28(bool is_primary,bool is_slave,uint32_t lbal,u
                     buf[count] = IO::inw(port + ATA_REG_DATA); // transfer data
                     ++count;         
                 }
-                //this->do_400ns_delay();
+                this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
                     input = IO::inb(port + ATA_REG_STATUS);
-                }
-                for(int k=0; k<3; ++k)
-                {
-                    //this->do_400ns_delay();
                 }
             }
         }
@@ -396,8 +425,8 @@ void IDEController::read_pio_lba48(bool is_primary,bool is_slave,uint32_t lbal,u
     else
         port = this->secondary_bus_io_port;
 
-    uint16_t sectorcount = this->get_sector_count(is_primary,is_slave,bytesCount);
-    uint16_t words = this->get_logical_sector_size(is_primary,is_slave)/2;
+    uint16_t sectorcount = this->get_sectors_per_bytes_count(is_primary,is_slave,bytesCount);
+    uint16_t words = this->native_get_logical_sector_size(is_primary,is_slave)/2;
 
     if(is_slave)
         IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
@@ -440,15 +469,11 @@ void IDEController::read_pio_lba48(bool is_primary,bool is_slave,uint32_t lbal,u
                     buf[count] = IO::inw(port + ATA_REG_DATA); // transfer data
                     ++count;         
                 }
-                //this->do_400ns_delay();
+                this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
                     input = IO::inb(port + ATA_REG_STATUS);
-                }
-                for(int k=0; k<3; ++k)
-                {
-                    //this->do_400ns_delay();
                 }
             }
         }
@@ -459,11 +484,11 @@ void IDEController::do_400ns_delay()
     for(int i = 0;i < 4; i++)
 		IO::inb(this->primary_bus_io_port + ATA_REG_ALTSTATUS);
 }
-uint16_t IDEController::get_sector_count(bool is_primary,bool is_slave,uint16_t bytesCount)
+uint16_t IDEController::get_sectors_per_bytes_count(bool is_primary,bool is_slave,uint16_t bytesCount)
 {
     if(this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data))
     {
-        uint16_t sector_size =  ATA_LOGICAL_SECTOR_SIZE << (this->cached_identify_data.physical_logical_sector & 0xf);
+        uint16_t sector_size =  this->native_get_logical_sector_size(is_primary,is_slave);
         if(bytesCount % sector_size == 0)
             return bytesCount/sector_size;
         else
@@ -474,7 +499,55 @@ uint16_t IDEController::get_sector_count(bool is_primary,bool is_slave,uint16_t 
         return 0xffff;
     }
 }
-uint16_t IDEController::get_logical_sector_size(bool is_primary,bool is_slave)
+
+uint16_t IDEController::get_logical_sector_size(uint8_t port)
+{
+    switch (port)
+    {
+        case 0:
+            return this->native_get_logical_sector_size(true,false);
+        case 1:
+            return this->native_get_logical_sector_size(true,true);
+        case 2:
+            return this->native_get_logical_sector_size(false,false);
+        case 3:
+            return this->native_get_logical_sector_size(false,true);
+    }
+    return 0x0;
+}
+uint16_t IDEController::get_physical_sector_size(uint8_t port)
+{
+    switch (port)
+    {
+        case 0:
+            return this->native_get_physical_sector_size(true,false);
+        case 1:
+            return this->native_get_physical_sector_size(true,true);
+        case 2:
+            return this->native_get_physical_sector_size(false,false);
+        case 3:
+            return this->native_get_physical_sector_size(false,true);
+    }
+    return 0x0;
+}
+uint8_t IDEController::get_physical_logical_sector_alignment(uint8_t port)
+{
+    switch (port)
+    {
+        case 0:
+            return this->native_get_physical_logical_sector_alignment(true,false);
+        case 1:
+            return this->native_get_physical_logical_sector_alignment(true,true);
+        case 2:
+            return this->native_get_physical_logical_sector_alignment(false,false);
+        case 3:
+            return this->native_get_physical_logical_sector_alignment(false,true);
+    }
+    return 0xff;
+}
+
+
+uint16_t IDEController::native_get_logical_sector_size(bool is_primary,bool is_slave)
 {
     this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
     if((this->cached_identify_data.physical_logical_sector & (1 << 12)) == 0)
@@ -484,14 +557,14 @@ uint16_t IDEController::get_logical_sector_size(bool is_primary,bool is_slave)
     else
         return this->cached_identify_data.logical_sector_size[0] << 1;
 }
-uint16_t IDEController::get_physical_sector_size(bool is_primary,bool is_slave)
+uint16_t IDEController::native_get_physical_sector_size(bool is_primary,bool is_slave)
 {
     this->identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
     uint16_t alignment = this->cached_identify_data.physical_logical_sector & 0xf;
-    uint16_t logical_sector_size = this->get_logical_sector_size(is_primary,is_slave);
+    uint16_t logical_sector_size = this->native_get_logical_sector_size(is_primary,is_slave);
     return logical_sector_size << alignment;
 }
-uint8_t IDEController::get_physical_logical_sector_alignment(bool is_primary,bool is_slave)
+uint8_t IDEController::native_get_physical_logical_sector_alignment(bool is_primary,bool is_slave)
 {
-    return this->get_physical_sector_size(is_primary,is_slave) / this->get_logical_sector_size(is_primary,is_slave);
+    return this->native_get_physical_sector_size(is_primary,is_slave) / this->native_get_logical_sector_size(is_primary,is_slave);
 }
