@@ -9,25 +9,13 @@
 #include <stddef.h>
 #include <Memory/Node.h>
 
-uint8_t PCI::Access::get_access_type()
-{
-    return this->access_type;
-}
-
 uint16_t PCI::read(PCI::Access* access, uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset)
 {
-    if(access->get_access_type() == PCIMemoryAccess)
-        return reinterpret_cast<PCI::MemoryAccess*>(access)->read(seg,bus,device,func,offset);
-    else if(access->get_access_type() == PCIIOAccess)
-        return reinterpret_cast<PCI::IOAccess*>(access)->read(bus,device,func,offset);
-    return 0xffff;
+    return access->read(seg,bus,device,func,offset);
 }
 void PCI::write(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset,uint16_t value)
 {
-    if(access->get_access_type() == PCIMemoryAccess)
-        reinterpret_cast<PCI::MemoryAccess*>(access)->write(seg,bus,device,func,offset,value);
-    else if(access->get_access_type() == PCIIOAccess)
-        reinterpret_cast<PCI::IOAccess*>(access)->write(bus,device,func,offset,value);
+    access->write(seg,bus,device,func,offset,value);
 }
 
 List<PCI::Device>* PCI::find_storage_devices(List<PCI::Device>* pci_devices)
@@ -45,67 +33,20 @@ List<PCI::Device>* PCI::find_storage_devices(List<PCI::Device>* pci_devices)
 List<PCI::Device>* PCI::enum_devices(PCI::Access* access)
 {
     List<PCI::Device>* tmp_list = new List<PCI::Device>(nullptr,0);
-    if(access->get_access_type() == PCIMemoryAccess)
-    {
-        PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
-        uint8_t start_bus;
-        uint8_t end_bus;
-        for(int seg=0;seg<(int)pcie_access->get_segments_count();++seg)
-        {
-            start_bus = pcie_access->get_segment_start_bus(seg);
-            end_bus = pcie_access->get_segment_end_bus(seg);
-            for(uint8_t bus=start_bus; bus < end_bus; ++bus)
-            {
-                for(uint8_t device=0; device < DevicesPerBus; ++device)
-                {
-                    for(uint8_t func=0; func < FunctionsPerDevice; ++func)
-                    {
-                        if(pcie_access->read(seg,bus,device,func,0) != 0xffff && pcie_access->read(seg,bus,device,func,2) != 0xffff)
-                        {
-                            PCI::Device* tmp = new PCI::Device();
-                            tmp->initialize(access,seg,bus,device,func);
-                            tmp_list->insert_node(tmp);
-                        }
-                    }
-                }
-            }
-        }
-        
-    }
-    else if(access->get_access_type() == PCIIOAccess)
-    {
-        PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
-        uint8_t start_bus = 0x0;
-        uint8_t end_bus = 0xff;
-        for(uint8_t bus=start_bus; bus < end_bus; ++bus)
-        {
+    for(uint32_t i=0; i < access->get_segments_count(); i++)
+        for(uint8_t bus=access->get_segment_start_bus(i); bus < access->get_segment_end_bus(i); ++bus)
             for(uint8_t device=0; device < DevicesPerBus; ++device)
-            {
                 for(uint8_t func=0; func < FunctionsPerDevice; ++func)
-                {
-                    if(pci_access->read(bus,device,func,0) != 0xffff && pci_access->read(bus,device,func,2) != 0xffff)
-                    {
-                        PCI::Device* tmp = new PCI::Device();
-                        tmp->initialize(access,0,bus,device,func);
-                        tmp_list->insert_node(tmp);
-                    }
-                }
-            }
-        }
-        
-    }
+                    if(access->read(i,bus,device,func,0) != 0xffff && access->read(i,bus,device,func,2) != 0xffff)
+                        tmp_list->insert_node(new PCI::Device(access,i,bus,device,func));
     return tmp_list;
 }
 
 PCI::Access* PCI::get_nonpcie_interface()
 {
-    PCI::IOAccess* tmp = new PCI::IOAccess();
-    tmp->initialize();
-    return (PCI::Access*)tmp;
+    return (PCI::Access*)new PCI::IOAccess();
 }
 PCI::Access* PCI::get_pcie_interface(ACPI_MCFG* mcfg)
 {
-    PCI::MemoryAccess* tmp = new PCI::MemoryAccess();
-    tmp->initialize(mcfg);
-    return (PCI::Access*)tmp;
+    return (PCI::Access*)new PCI::MemoryAccess(mcfg);
 }

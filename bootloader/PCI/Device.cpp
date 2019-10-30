@@ -4,46 +4,24 @@
 #include <PCI/MemoryAccess.h>
 #include <PCI/defs.h>
 
-
+PCI::Device::Device(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function)
+{
+    this->initialize(access,seg,bus,device,function);
+}
 void PCI::Device::initialize(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function)
 {
-    if(access->get_access_type() == PCIMemoryAccess)
+    if(access->read(seg,bus,device,function,0) != 0xffff && access->read(seg,bus,device,function,2) != 0xffff)
     {
-        PCI::MemoryAccess* pcie_access = (PCI::MemoryAccess*)access;
-        if(pcie_access->read(seg,bus,device,function,0) != 0xffff && pcie_access->read(seg,bus,device,function,2) != 0xffff)
-        {
-            this->set_segment(seg);
-            this->set_bus(bus);
-            this->set_device_number(device);
-            this->set_function_number(function);
-
-            this->set_vendor_number(pcie_access->read(seg,bus,device,function,0));
-            this->set_device_id(pcie_access->read(seg,bus,device,function,2));
-            
-            this->set_class_code((pcie_access->read(seg,bus,device,function,10) & 0xFF00) >> 8);
-            this->set_subclass(pcie_access->read(seg,bus,device,function,10) & 0xFF);
-            this->set_progif((pcie_access->read(seg,bus,device,function,8) & 0xFF00) >> 8);
-            this->set_revision_id(pcie_access->read(seg,bus,device,function,8) & 0xFF);
-        }
-    }
-    else if(access->get_access_type() == PCIIOAccess)
-    {
-        PCI::IOAccess* pci_access = (PCI::IOAccess*)access;
-        if(pci_access->read(bus,device,function,0) != 0xffff && pci_access->read(bus,device,function,2) != 0xffff)
-        {
-            this->set_segment(seg);
-            this->set_bus(bus);
-            this->set_device_number(device);
-            this->set_function_number(function);
-
-            this->set_vendor_number(pci_access->read(bus,device,function,0));
-            this->set_device_id(pci_access->read(bus,device,function,2));
-            
-            this->set_class_code((pci_access->read(bus,device,function,10) & 0xFF00) >> 8);
-            this->set_subclass(pci_access->read(bus,device,function,10) & 0xFF);
-            this->set_progif((pci_access->read(bus,device,function,8) & 0xFF00) >> 8);
-            this->set_revision_id(pci_access->read(bus,device,function,8) & 0xFF);
-        }
+        this->set_segment(seg);
+        this->set_bus(bus);
+        this->set_device_number(device);
+        this->set_function_number(function);
+        this->set_vendor_number(access->read(seg,bus,device,function,0));
+        this->set_device_id(access->read(seg,bus,device,function,2));
+        this->set_class_code((access->read(seg,bus,device,function,10) & 0xFF00) >> 8);
+        this->set_subclass(access->read(seg,bus,device,function,10) & 0xFF);
+        this->set_progif((access->read(seg,bus,device,function,8) & 0xFF00) >> 8);
+        this->set_revision_id(access->read(seg,bus,device,function,8) & 0xFF);
     }
 }
 

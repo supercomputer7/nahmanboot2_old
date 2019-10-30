@@ -6,7 +6,7 @@
 class PCI::Device{
 
 public:
-    void initialize(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function);
+    Device(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function);
     ~Device();
 
     uint32_t get_segment() const;
@@ -22,6 +22,7 @@ public:
     uint8_t get_progif() const;
     uint8_t get_revision_id() const;
 private:
+    void initialize(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function);
     void set_segment(uint32_t seg);
     void set_bus(uint8_t bus);
     void set_device_number(uint8_t device);
