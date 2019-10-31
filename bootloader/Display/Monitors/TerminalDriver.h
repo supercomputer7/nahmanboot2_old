@@ -1,7 +1,8 @@
 #pragma once
 #include <stdint.h>
-#include <Display/StandardVGA.h>
+#include <Display/Protocols/StandardVGA.h>
 #include <LibC/stdstring.h>
+#include <LibC/stdbool.h>
 
 class TerminalDriver {
 
@@ -13,11 +14,16 @@ public:
     void exit();
 private:
 
+    bool is_writable;
+
     void new_line();
     void first_line();
     void next_char();
 
     StandardVGA* vga;
+
+    char* buffer;
+
     uint32_t foreground_color;
     uint32_t background_color;
 

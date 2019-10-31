@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 #define ATA_LOGICAL_SECTOR_SIZE 512
 

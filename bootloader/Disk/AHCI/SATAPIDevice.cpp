@@ -1,4 +1,4 @@
-#include <Disk/SATAPIDevice.h>
+#include <Disk/AHCI/SATAPIDevice.h>
 
 SATAPIDevice::SATAPIDevice(AHCIController* controller,uint8_t port) : StorageDevice(controller,port)
 {

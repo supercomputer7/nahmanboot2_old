@@ -1,4 +1,4 @@
-#include <Disk/IDEController.h>
+#include <Disk/IDE/IDEController.h>
 IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
 {
     this->initialize(device,access);

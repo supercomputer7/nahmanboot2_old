@@ -1,4 +1,4 @@
-#include <Disk/ATAPIDevice.h>
+#include <Disk/IDE/ATAPIDevice.h>
 
 ATAPIDevice::ATAPIDevice(IDEController* controller,uint8_t port) : StorageDevice(controller,port)
 {

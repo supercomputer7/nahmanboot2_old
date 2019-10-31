@@ -1,5 +1,11 @@
-#include <Filesystem/Ext2Filesystem.h>
+#include <Filesystem/LinuxFilesystems/Ext2Filesystem.h>
 
+//Ext2Filesystem::Ext2Filesystem(DevicePartition* partition)
+//{
+//    this->initialize(partition);
+//    this->filesystem_type = FilesystemType::Ext2FS;
+//}
+//
 void Ext2Filesystem::initialize(DevicePartition* partition)
 {
     this->partition = partition;
@@ -19,6 +25,7 @@ void Ext2Filesystem::initialize(DevicePartition* partition)
     this->cached_block3_number = 0xFFFFFFFF;
 
     this->block_size = (Ext2FS_Base_Blocksize << this->get_superblock()->basic_superblock.block_size);
+    //this->filesystem_type = FilesystemType::Ext2FS;
 }
 uint32_t Ext2Filesystem::get_file_size(const char* filename)
 {

@@ -3,22 +3,22 @@ BOOTLOADER_OBJS = \
     load.o \
 	Memory/Allocator.o \
 	Memory/malloc.o \
-	Display/Print.o \
-	Display/StandardVGA.o \
-	Display/TerminalDriver.o \
+	Display/Monitors/Print.o \
+	Display/Monitors/TerminalDriver.o \
+	Display/Protocols/StandardVGA.o \
 	ACPI/RSDP.o \
 	ACPI/XSDT.o \
 	ACPI/RSDT.o \
 	Disk/Disk.o \
-	Disk/ATADevice.o \
-	Disk/SATADevice.o \
-	Disk/ATAPIDevice.o \
-	Disk/SATAPIDevice.o \
 	Disk/StorageDevice.o \
-	Disk/IDEController.o \
-	Disk/AHCIController.o \
-	Filesystem/Partition.o \
-	Filesystem/Ext2Filesystem.o \
+	Disk/IDE/IDEController.o \
+	Disk/IDE/ATADevice.o \
+	Disk/IDE/ATAPIDevice.o \
+	Disk/AHCI/SATADevice.o \
+	Disk/AHCI/SATAPIDevice.o \
+	Disk/AHCI/AHCIController.o \
+	Partition/Partition.o \
+	Filesystem/LinuxFilesystems/Ext2Filesystem.o \
 	Kernels/MultibootKernel.o \
 	Parsers/ELF/ELF32Parser.o \
 	PCI/Access.o \

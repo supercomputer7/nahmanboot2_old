@@ -4,7 +4,8 @@
 
 #include <stdint.h>
 #include <LibC/stdstring.h>
-#include <Filesystem/Partition.h>
+#include <Partition/Partition.h>
+#include <Filesystem/GenericFilesystems/GenericFilesystem.h>
 #include <Memory/malloc.h>
 
 namespace Ext2
@@ -229,17 +230,20 @@ typedef enum
 
 }
 
-class Ext2Filesystem {
+class Ext2Filesystem : protected GenericFilesystem {
 
 public:
     ~Ext2Filesystem();
-    void initialize(DevicePartition* partition);
-    uint32_t get_file_size(const char* filename);
-    bool read(const char* filename,uint16_t* buf,uint32_t bytesCount);
+    //Ext2Filesystem(DevicePartition* partition);
+    void initialize(DevicePartition* partition) override;
+    uint32_t get_file_size(const char* filename) override;
+    bool read(const char* filename,uint16_t* buf,uint32_t bytesCount) override;
+    
+private:
     uint32_t find_file(const char* filename);
     uint32_t get_element_length(const char* str);
     const char* get_next_foldername(const char* str);
-private:
+
     uint32_t get_inode_filesize(uint32_t inode);
     
     Ext2::Extended_Superblock* get_superblock();
@@ -288,6 +292,4 @@ private:
     char* cached_block2;
     uint32_t cached_block3_number;
     char* cached_block3;
-
-    DevicePartition* partition;
 };

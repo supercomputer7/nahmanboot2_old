@@ -1,4 +1,4 @@
-#include <Disk/SATADevice.h>
+#include <Disk/AHCI/SATADevice.h>
 
 SATADevice::SATADevice(AHCIController* controller,uint8_t port) : StorageDevice(controller,port)
 {

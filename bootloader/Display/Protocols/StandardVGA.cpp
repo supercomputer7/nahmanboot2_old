@@ -1,4 +1,4 @@
-#include <Display/StandardVGA.h>
+#include <Display/Protocols/StandardVGA.h>
 
 StandardVGA::~StandardVGA()
 {

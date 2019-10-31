@@ -1,4 +1,4 @@
-#include <Display/TerminalDriver.h>
+#include <Display/Monitors/TerminalDriver.h>
 
 TerminalDriver::~TerminalDriver()
 {
@@ -12,6 +12,7 @@ bool TerminalDriver::initialize(StandardVGA* vga,uint32_t foreground_color,uint3
     this->first_line();
     this->column_limit = col_limit;
     this->row_limit = row_limit;
+    this->is_writable = true;
     return true;
 }
 void TerminalDriver::clear()
@@ -21,8 +22,8 @@ void TerminalDriver::clear()
 
 void TerminalDriver::exit()
 {
-    const char* menu_prepare = "Terminal Stopped\n";
-    this->write(menu_prepare);   
+    this->write("Terminal Stopped\n");
+    this->is_writable = false;
 }
 
 void TerminalDriver::new_line()
@@ -41,29 +42,32 @@ void TerminalDriver::next_char()
 }
 void TerminalDriver::write(const char* str)
 {
-    int i=0;
-    while(i<(int)strlen(str))
+    if(is_writable)
     {
-        if(str[i] == '\n')
+        int i=0;
+        while(i<(int)strlen(str))
         {
-            if(this->row == this->row_limit)
+            if(str[i] == '\n')
             {
-                this->first_line();
+                if(this->row == this->row_limit)
+                {
+                    this->first_line();
+                }
+                else
+                {
+                    this->new_line();   
+                }
+                i+=2;
+                continue;
             }
-            else
+            if(this->column == this->column_limit)
             {
-                this->new_line();   
+                this->new_line();
             }
-            i+=2;
-            continue;
-        }
-        if(this->column == this->column_limit)
-        {
-            this->new_line();
-        }
 
-        this->vga->write(str[i],this->vga->get_color(this->foreground_color,this->background_color),this->column + (this->row * this->vga->get_pitch()));
-        this->next_char();
-        ++i;
+            this->vga->write(str[i],this->vga->get_color(this->foreground_color,this->background_color),this->column + (this->row * this->vga->get_pitch()));
+            this->next_char();
+            ++i;
+        }
     }
 }

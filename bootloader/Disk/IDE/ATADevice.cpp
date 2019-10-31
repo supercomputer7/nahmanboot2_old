@@ -1,4 +1,4 @@
-#include <Disk/ATADevice.h>
+#include <Disk/IDE/ATADevice.h>
 
 ATADevice::ATADevice(IDEController* controller,uint8_t port) : StorageDevice(controller,port)
 {
