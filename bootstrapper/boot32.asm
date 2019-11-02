@@ -353,7 +353,9 @@ IDT:
 dw 256*8-1
 dd 0x7000;
 
+times (1024 - ($-$$)) db 0
 
+%include "RealModeSwitcher.asm"
 
 times (4096 - ($-$$)) db 0
 

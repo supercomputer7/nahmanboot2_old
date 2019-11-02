@@ -3,6 +3,7 @@ BOOTLOADER_OBJS = \
     load.o \
 	Memory/Allocator.o \
 	Memory/malloc.o \
+	CPU/RealModeExtender.o \
 	Display/Monitors/Print.o \
 	Display/Monitors/TerminalDriver.o \
 	Display/Protocols/StandardVGA.o \
