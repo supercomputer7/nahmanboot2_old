@@ -5,8 +5,11 @@
 #include <Memory/E820.h>
 #include <Memory/malloc.h>
 #include <Parsers/ELF/ELF.h>
+#include <Kernels/GenericBootProtocol.h>
+#include <Display/Protocols/GenericScreen.h>
+#include <Display/Protocols/FramebufferResolution.h>
 
-namespace MultibootProtocol {
+namespace Multiboot {
 
     #define MULTIBOOT_SEARCH                        8192
     #define MULTIBOOT_HEADER_ALIGN                  4
@@ -153,6 +156,7 @@ namespace MultibootProtocol {
 
     typedef struct multiboot_mmap_entry
     {
+    #define MULTIBOOT_MEMORY_DEFAULT_ENTRY_SIZE     20
       uint32_t size;
 
       uint32_t addr1;
@@ -191,9 +195,15 @@ namespace MultibootProtocol {
       uint16_t dseg_len;
     };
 
-    bool detect(uint32_t* buf);
-    void load(multiboot_info_t* ptr,char* commandline,e820map_entry_t* mmap,uint32_t mmap_size, char* bootloader_name);
-    void loadelf(multiboot_info_t* ptr,Elf32MainHeader* main_header);
-    void jump(multiboot_info_t* ptr,uint32_t entry_point);
-    void load_vbe(multiboot_info_t* ptr);
+  class BootProtocol : public GenericBootProtocol {
+  public:
+    void boot(void* loaded_file,e820map_entry_t* mmap,uint16_t mmap_entries_count,char* commandline,FramebufferResolution* preferred_resolution) override;
+    bool detect(uint32_t* buf) override;
+  private:
+    Multiboot::multiboot_info_t* get_multiboot_info();
+    void load(char* commandline,e820map_entry_t* mmap,uint32_t mmap_size, char* bootloader_name);
+    void loadelf(Elf32MainHeader* main_header);
+    void jump(uint32_t entry_point);
+    void load_vbe(GenericScreen* screen);
+  };
 }

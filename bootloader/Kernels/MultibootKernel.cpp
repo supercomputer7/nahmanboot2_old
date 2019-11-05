@@ -1,6 +1,31 @@
 #include <Kernels/MultibootKernel.h>
-
-void MultibootProtocol::jump(multiboot_info_t* ptr,uint32_t entry_point)
+#include <Parsers/ELF/ELF32Parser.h>
+#include <Display/Monitors/Print.h>
+void Multiboot::BootProtocol::boot(void* loaded_file,e820map_entry_t* mmap,uint16_t mmap_entries_count,char* commandline,FramebufferResolution* preferred_resolution)
+{
+    if(this->detect((uint32_t*)loaded_file))
+    {
+        ELF32Parser* parser = new ELF32Parser();
+        parser->parse((Elf32MainHeader*)loaded_file,(uint32_t)kmalloc(reinterpret_cast<Elf32MainHeader *>(loaded_file)->section_header_table_entries_count*
+                                                                    reinterpret_cast<Elf32MainHeader *>(loaded_file)->section_header_table_entry_size)
+                                                            );
+        this->boot_structure = (Multiboot::multiboot_info_t*)kmalloc_aligned();
+        this->load(commandline,mmap,mmap_entries_count,nullptr);
+        if(preferred_resolution != nullptr)
+        {
+            stdout::set_resolution(preferred_resolution->get_width(),
+                                preferred_resolution->get_height(),
+                                preferred_resolution->get_bpp());
+            this->load_vbe(stdout::get_screen());
+        }
+        this->jump(reinterpret_cast<Elf32MainHeader *>(loaded_file)->program_entry_position);
+    }
+    else
+    {
+        stdout::print("Error: Not a Multiboot complaint image!\n");
+    }
+}
+void Multiboot::BootProtocol::jump(uint32_t entry_point)
 {
     asm volatile(
     "cli;"
@@ -10,43 +35,47 @@ void MultibootProtocol::jump(multiboot_info_t* ptr,uint32_t entry_point)
     "pushl %%ecx;"
     "ret"
     :
-    : "d" ((uint32_t)ptr), "a" ((uint32_t)entry_point)
+    : "d" ((uint32_t)this->boot_structure), "a" ((uint32_t)entry_point)
     :
     );
 }
 
-void MultibootProtocol::load_vbe(multiboot_info_t* ptr)
-{
-    // hardcode things for now
-    ptr->vbe_mode = 0x118;
-    ptr->framebuffer_addr = 0xfd000000;
-    ptr->framebuffer_height = 768;
-    ptr->framebuffer_width = 1024;
-    ptr->framebuffer_type = 0x0;
-    ptr->framebuffer_bpp = 24;
-    ptr->framebuffer_pitch = 768*4;
+void Multiboot::BootProtocol::load_vbe(GenericScreen* screen)
+{    
+    this->get_multiboot_info()->framebuffer_addr = (uint32_t)screen->get_resolution_buffer();
+    this->get_multiboot_info()->framebuffer_height = screen->get_resolution_height();
+    this->get_multiboot_info()->framebuffer_width = screen->get_resolution_width();
+    this->get_multiboot_info()->framebuffer_type = MULTIBOOT_FRAMEBUFFER_TYPE_RGB;
+    this->get_multiboot_info()->framebuffer_bpp = screen->get_resolution_bpp();
+    this->get_multiboot_info()->framebuffer_pitch = screen->get_resolution_pitch();
+    this->get_multiboot_info()->vbe_mode = screen->get_current_videomode();
 }
 
-void MultibootProtocol::loadelf(multiboot_info_t* ptr,Elf32MainHeader* main_header)
+void Multiboot::BootProtocol::loadelf(Elf32MainHeader* main_header)
 {
-    ptr->u.elf_sec.addr = (uint32_t)main_header + main_header->section_header_table_position;
-    ptr->u.elf_sec.num = main_header->section_header_table_entries_count;
-    ptr->u.elf_sec.size = main_header->section_header_table_entry_size;
-    ptr->u.elf_sec.shndx = main_header->section_header_table_names_index;
+    this->get_multiboot_info()->u.elf_sec.addr = (uint32_t)main_header + main_header->section_header_table_position;
+    this->get_multiboot_info()->u.elf_sec.num = main_header->section_header_table_entries_count;
+    this->get_multiboot_info()->u.elf_sec.size = main_header->section_header_table_entry_size;
+    this->get_multiboot_info()->u.elf_sec.shndx = main_header->section_header_table_names_index;
 }
 
-void MultibootProtocol::load(multiboot_info_t* ptr,char* commandline,e820map_entry_t* mmap,uint32_t mmap_size, char* bootloader_name)
+Multiboot::multiboot_info_t* Multiboot::BootProtocol::get_multiboot_info()
 {
-    ptr->cmdline = (uint32_t)commandline;
-    ptr->flags = ptr->flags | MULTIBOOT_INFO_CMDLINE | (1<<5) | (1<<6) | (1<<11) | (1<<12);
+    return reinterpret_cast<Multiboot::multiboot_info_t*>(this->boot_structure);
+}
 
-    ptr->boot_loader_name = (uint32_t)bootloader_name;
+void Multiboot::BootProtocol::load(char* commandline,e820map_entry_t* mmap,uint32_t mmap_size, char* bootloader_name)
+{
+    this->get_multiboot_info()->cmdline = (uint32_t)commandline;
+    this->get_multiboot_info()->flags = this->get_multiboot_info()->flags | MULTIBOOT_INFO_CMDLINE | (1<<5) | (1<<6) | (1<<11) | (1<<12);
 
-    multiboot_memory_map_t* multiboot_mmap = (multiboot_memory_map_t*)0x205000;//kcalloc(sizeof(multiboot_memory_map_t)*mmap_size);
+    this->get_multiboot_info()->boot_loader_name = (uint32_t)bootloader_name;
+
+    multiboot_memory_map_t* multiboot_mmap = (multiboot_memory_map_t*)kcalloc(sizeof(multiboot_memory_map_t)*mmap_size);
     
     for(uint32_t i=0; i< mmap_size;++i)
     {
-        multiboot_mmap[i].size = 20;
+        multiboot_mmap[i].size = MULTIBOOT_MEMORY_DEFAULT_ENTRY_SIZE;
         multiboot_mmap[i].addr1 = mmap[i].base_addr1;
         multiboot_mmap[i].len1 = mmap[i].length1;
         switch (mmap[i].type)
@@ -71,11 +100,11 @@ void MultibootProtocol::load(multiboot_info_t* ptr,char* commandline,e820map_ent
         }
 
     }
-    ptr->mmap_addr = (uint32_t)multiboot_mmap;
-    ptr->mmap_length = sizeof(multiboot_memory_map_t)*(mmap_size);
+    this->get_multiboot_info()->mmap_addr = (uint32_t)multiboot_mmap;
+    this->get_multiboot_info()->mmap_length = sizeof(multiboot_memory_map_t)*(mmap_size);
 }
 
-bool MultibootProtocol::detect(uint32_t* buf)
+bool Multiboot::BootProtocol::detect(uint32_t* buf)
 {
     for(int i=0; i<2048;++i) // 8192 bytes / sizeof(uint32_t)
     {
