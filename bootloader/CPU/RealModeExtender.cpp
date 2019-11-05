@@ -16,7 +16,7 @@ void RealModeExtender::invoke_bios_interrupt(uint16_t interrupt_vector,uint32_t 
     "movl %esp,(%edi);"
     "movl $0x600,%esp;"
     "movl $0xc30,%eax;"
-    "call %eax;"
+    "call *%eax;"
     "movl $0xF000,%edi;"
     "movl (%edi),%esp;"
     );
