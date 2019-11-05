@@ -2,7 +2,7 @@ BITS 32
 
 switch_structure:
 .sig dd 0x70BBCAFE
-.returnaddr dd 0x10076d
+.returnaddr dd 0x0
 .previousstack dd 0x0
 .interrupt dw 0x0
 .eax_reg dd 0x0
@@ -95,7 +95,38 @@ mov edx,dword [switch_structure.edx_reg]
 mov edi,dword [switch_structure.edi_reg]
 mov esi,dword [switch_structure.esi_reg]
 
-int 0x10
+cmp word [switch_structure.interrupt],0x10
+je .int0x10
+
+cmp word [switch_structure.interrupt],0x12
+je .int0x12
+
+cmp word [switch_structure.interrupt],0x13
+je .int0x13
+
+cmp word [switch_structure.interrupt],0x15
+je .int0x15
+
+cmp word [switch_structure.interrupt],0x16
+je .int0x16
+
+.int0x10:
+	int 0x10
+	jmp .exit_interrupt
+.int0x12:
+	int 0x12
+	jmp .exit_interrupt
+.int0x13:
+	int 0x13
+	jmp .exit_interrupt
+.int0x15:
+	int 0x15
+	jmp .exit_interrupt
+.int0x16:
+	int 0x16
+	jmp .exit_interrupt
+
+.exit_interrupt:
 
 pop es
 pop edi

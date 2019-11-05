@@ -2,7 +2,7 @@
 void RealModeExtender::invoke_bios_interrupt(uint16_t interrupt_vector,uint32_t eax,uint32_t ebx,uint32_t ecx,uint32_t edx,uint32_t esi,uint32_t edi,uint16_t es)
 {
     RealModeSwitch* realmode_switch = (RealModeSwitch*)(0xc00);
-    realmode_switch->interrupt_vector = 0x10;
+    realmode_switch->interrupt_vector = interrupt_vector;
     realmode_switch->eax = eax;
     realmode_switch->ebx = ebx;
     realmode_switch->ecx = ecx;
