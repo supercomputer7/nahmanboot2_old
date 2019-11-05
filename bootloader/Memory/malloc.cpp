@@ -1,9 +1,34 @@
 #include <Memory/malloc.h>
 
-void kmalloc_init()
+void kmalloc_init(uint32_t addr)
 {
     BumpAllocator* allocator = (BumpAllocator*)(BumpAllocatorLocation);
-    allocator->initialize(0x300000);
+    e820map_descriptor* descriptor = (e820map_descriptor*)addr;
+    e820map_entry_t* e820_map = (e820map_entry_t*)descriptor->map_addr;
+    uint32_t i;
+    for(i=0;i<descriptor->entries_count;++i)
+        if(e820_map[i].length1 > 0x2500000 && e820_map[i].type == 0x1)
+            break;
+    allocator->initialize(((e820_map[i].base_addr1 + e820_map[i].length1) - (0x2000000)));
+}
+void kmalloc_aligned_init()
+{
+    BumpAllocator* allocator = (BumpAllocator*)(AlignedBumpAllocationLocation);
+    allocator->initialize(0x200000);
+}
+
+void* kmalloc_aligned()
+{
+    size_t size = 4096;
+    return (void*)((BumpAllocator*)(AlignedBumpAllocationLocation))->allocate((uint32_t)size);
+}
+void* kcalloc_aligned()
+{
+    size_t size = 4096;
+    uint8_t* tmp = (uint8_t*)((BumpAllocator*)(AlignedBumpAllocationLocation))->allocate((uint32_t)size);
+    for(int i=0; i<(int)size;i++)
+        tmp[i] = 0;
+    return (void*)tmp;
 }
 
 void cache_alloc_init(uint32_t addr)
