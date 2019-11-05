@@ -7,6 +7,8 @@ BOOTLOADER_OBJS = \
 	Display/Monitors/Print.o \
 	Display/Monitors/TerminalDriver.o \
 	Display/Protocols/StandardVGA.o \
+	Display/Protocols/StandardVESA.o \
+	Display/Protocols/FramebufferResolution.o \
 	ACPI/RSDP.o \
 	ACPI/XSDT.o \
 	ACPI/RSDT.o \
