@@ -4,6 +4,10 @@ start:
 
 cli
 
+mov esp,0x0
+mov ax,0x5500 ; setup stack, important! set a sane value here
+mov ss,ax
+
 ;; check memory map
 
 memory_detection:
@@ -70,7 +74,7 @@ mov es,ax
 .end_detect_mem:
 
 	xor eax,eax
-	mov ax,0x2000
+	mov ax,0x6000
 	mov es,ax
 	xor bx,bx
 	mov dword [es:bx],0x700
@@ -242,28 +246,13 @@ check_a20line_main:
 	je stage4_framebuffer ; proceed to next stage
 	call enable_a20line ; otherwise enable a20line
 
-;;; setup framebuffer
 stage4_framebuffer:
-
-    mov esp,0x4000 ; important! set a sane value here
-
 	mov ax,0x3
 	int 0x10
 
 	mov ah,0x1
 	mov ch,0x3f
 	int 0x10
-
-	;; get frame buffer address
-
-	;mov ax, 0x4F02	; set VBE mode
-	;mov bx, 0x4118	; VBE mode number; notice that bits 0-13 contain the mode number and bit 14 (LFB) is set and bit 15 (DM) is clear.
-	;mov bx,0x4138
-	;int 0x10			; call VBE BIOS
-	;cmp ax, 0x004F	; test for error
-
-	;error:
-	;	jne error
 
 cli
 
@@ -288,7 +277,7 @@ protected_mode:
 	cli
 	
 	;; Setting up GDTR for Protected mode
-lgdt [gdt_pointer] ; load the gdt table
+lgdt [GDT32.pointer] ; load the gdt table
 
 
 mov eax, cr0 
@@ -296,33 +285,32 @@ or eax,0x1 ; set the protected mode bit on special CPU reg cr0
 mov cr0, eax
 
 
-jmp 0x8:boot2 ; long jump to the code segment
+jmp CODE32_SEG:boot2 ; long jump to the code segment
 
-gdt_start:
+GDT32:
+.start:
     dq 0x0
-gdt_code:
+.code:
     dw 0xFFFF
     dw 0x0
     db 0x0
     db 10011010b
     db 11001111b
     db 0x0
-gdt_data:
+.data:
     dw 0xFFFF
     dw 0x0
     db 0x0
     db 10010010b
     db 11001111b
     db 0x0
-gdt_end:
+.end:
 
-gdt_pointer:
-    dw gdt_end - gdt_start
-    dd gdt_start
-CODE_SEG equ gdt_code - gdt_start
-DATA_SEG equ gdt_data - gdt_start
-
-;;; print menu based MBR table
+.pointer:
+    dw GDT32.end - GDT32.start
+    dd GDT32
+CODE32_SEG equ GDT32.code - GDT32.start
+DATA32_SEG equ GDT32.data - GDT32.start
 
 BITS 32
 
@@ -330,9 +318,9 @@ boot2:
 
     cli
 
-    mov esp,0x4000 ; important! set a sane value here
+    mov esp,0x55000 ; important! set a sane value here
 
-    mov ax, 0x10
+    mov ax, DATA32_SEG
     mov ds, ax
     mov es, ax
     mov ss, ax
@@ -342,20 +330,13 @@ boot2:
 
 cli
 
-lidt [IDT]
-
-push 0x100000
+push 0x1000
 ret ; jump!
-
 hlt ; hopefully we never reach this opcode
-
-IDT:
-dw 256*8-1
-dd 0x7000;
 
 times (1024 - ($-$$)) db 0
 
 %include "RealModeSwitcher.asm"
 
-times (4096 - ($-$$)) db 0
+times (1496 - ($-$$)) db 0
 

@@ -155,37 +155,11 @@ or eax,0x1 ; set the protected mode bit on special CPU reg cr0
 mov cr0, eax
 
 
-jmp 0x8:entry.protectedmode ; long jump to the code segment
+jmp CODE32_SEG:entry.protectedmode ; long jump to the code segment
 
 IDT16_n:
 dq 0
 dq 0
-
-GDT32:
-.entry:
-    dq 0x0
-.code:
-    dw 0xFFFF
-    dw 0x0
-    db 0x0
-    db 10011010b
-    db 11001111b
-    db 0x0
-.data:
-    dw 0xFFFF
-    dw 0x0
-    db 0x0
-    db 10010010b
-    db 11001111b
-    db 0x0
-.end:
-
-.pointer:
-    dw GDT32.end - GDT32
-    dd GDT32
-CODE32_SEG equ GDT32.code - GDT32.entry
-DATA32_SEG equ GDT32.data - GDT32.entry
-
 
 GDT16:
 .entry:
