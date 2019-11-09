@@ -1,4 +1,5 @@
 #include <Display/Protocols/StandardVESA.h>
+#include <LibC/stdstring.h>
 StandardVESA::StandardVESA()
 {
     this->initialize();

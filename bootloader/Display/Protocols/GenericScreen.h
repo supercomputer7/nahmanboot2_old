@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <LibC/stdstring.h>
 #include <LibC/stdbool.h>
 
 #define BitsPerByte 8

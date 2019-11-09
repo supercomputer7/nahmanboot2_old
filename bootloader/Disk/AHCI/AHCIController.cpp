@@ -1,4 +1,7 @@
 #include <Disk/AHCI/AHCIController.h>
+#include <LibC/stdstring.h>
+#include <Memory/malloc.h>
+
 AHCIController::AHCIController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
 {
 	this->initialize(device,access);

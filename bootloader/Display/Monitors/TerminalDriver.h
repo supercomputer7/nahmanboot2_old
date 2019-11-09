@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include <Display/Protocols/StandardVGA.h>
-#include <LibC/stdstring.h>
 #include <LibC/stdbool.h>
 
 class TerminalDriver {

@@ -1,7 +1,5 @@
 #include <PCI/Device.h>
 #include <PCI/Access.h>
-#include <PCI/IOAccess.h>
-#include <PCI/MemoryAccess.h>
 #include <PCI/defs.h>
 
 PCI::Device::Device(PCI::Access* access,uint32_t seg,uint8_t bus,uint8_t device,uint8_t function)

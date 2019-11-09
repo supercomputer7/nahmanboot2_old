@@ -1,6 +1,5 @@
 #pragma once
 #include <stdint.h>
-#include <LibC/stdstring.h>
 #include <Parsers/ELF/ELF.h>
 
 class ELF32Parser {

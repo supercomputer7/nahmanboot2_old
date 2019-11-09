@@ -2,8 +2,6 @@
 #include <stdint.h>
 #include <LibC/stdbool.h>
 #include <Partition/GenericStoragePartition.h>
-#include <Memory/List.h>
-#include <Memory/Node.h>
 
 class GUIDPartition : public GenericStoragePartition {
 

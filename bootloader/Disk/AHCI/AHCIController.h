@@ -1,16 +1,10 @@
 #pragma once
 #include <stdint.h>
 #include <LibC/stdbool.h>
-#include <LibC/stdstring.h>
-
 #include <Disk/GenericDiskController.h>
 #include <Disk/defs.h>
-
 #include <PCI/Device.h>
 #include <PCI/PCI.h>
-#include <IO/IO.h>
-
-#include <Memory/malloc.h>
 
 #define AHCI_MAXIMUM_COMMAND_SLOTS 32
 #define AHCI_MAXIMUM_PORTS 32

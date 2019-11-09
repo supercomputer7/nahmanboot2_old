@@ -1,5 +1,10 @@
 #include <Disk/Disk.h>
+#include <stdint.h>
 #include <LibC/stdbool.h>
+#include <Disk/AHCI/AHCIController.h>
+#include <Disk/AHCI/SATADevice.h>
+#include <Disk/IDE/IDEController.h>
+#include <Disk/IDE/ATADevice.h>
 List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* devices, PCI::Access* access)
 {
     List<GenericDiskController>* list = new List<GenericDiskController>(nullptr,0);
@@ -14,9 +19,7 @@ List<GenericDiskController>* Disk::enum_storage_controllers(List<PCI::Device>* d
         else if (devices->get_node(i)->get_object()->get_subclass() == 0x6)
             controller =  new AHCIController(devices->get_node(i)->get_object(),access);            
         else
-        {
             controller = new GenericDiskController();
-        }
         list->insert_node(controller);
     }
     return list;

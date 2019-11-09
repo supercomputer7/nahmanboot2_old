@@ -1,15 +1,10 @@
 #pragma once
 #include <stdint.h>
 #include <LibC/stdbool.h>
-
-#include <Disk/defs.h>
 #include <Disk/GenericDiskController.h>
-
+#include <Disk/defs.h>
 #include <PCI/Device.h>
 #include <PCI/PCI.h>
-#include <IO/IO.h>
-
-#include <Memory/malloc.h>
 
 typedef struct {
     uint32_t data_buffer;

@@ -1,14 +1,8 @@
 #pragma once
-#include <Memory/malloc.h>
 #include <Memory/Node.h>
 #include <Memory/List.h>
-#include <stdint.h>
-#include <PCI/PCI.h>
 #include <PCI/Device.h>
-
 #include <Disk/StorageDevice.h>
-#include <Disk/IDE/ATADevice.h>
-#include <Disk/AHCI/SATADevice.h>
 #include <Disk/GenericDiskController.h>
 
 namespace Disk {

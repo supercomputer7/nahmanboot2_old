@@ -1,4 +1,7 @@
 #include <Disk/IDE/IDEController.h>
+#include <IO/IO.h>
+#include <Memory/malloc.h>
+
 IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
 {
     this->initialize(device,access);
