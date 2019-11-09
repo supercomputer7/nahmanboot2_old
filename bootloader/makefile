@@ -21,6 +21,12 @@ BOOTLOADER_OBJS = \
 	Disk/AHCI/SATADevice.o \
 	Disk/AHCI/SATAPIDevice.o \
 	Disk/AHCI/AHCIController.o \
+	Partition/BSDPartition.o \
+	Partition/DOSPartition.o \
+	Partition/GUIDPartition.o \
+	Partition/GenericPartition.o \
+	Partition/GenericStoragePartition.o \
+	Partition/PartitionProbing.o \
 	Filesystem/LinuxFilesystems/Ext2Filesystem.o \
 	Kernels/MultibootKernel.o \
 	Parsers/ELF/ELF32Parser.o \
