@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <IO/IO.h>
 
-class PCI::IOAccess : protected PCI::Access {
+class PCI::IOAccess : public PCI::Access {
 
 public:
     ~IOAccess();

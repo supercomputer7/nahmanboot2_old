@@ -11,6 +11,8 @@ namespace PCI
     class IOAccess;
     class Device;
 
+    PCI::Access* get_access();
+
     PCI::Access* get_nonpcie_interface();
     PCI::Access* get_pcie_interface(ACPI_MCFG* mcfg);
 

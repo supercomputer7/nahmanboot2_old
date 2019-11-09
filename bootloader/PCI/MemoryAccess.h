@@ -3,7 +3,7 @@
 #include <PCI/Access.h>
 #include <stdint.h>
 
-class PCI::MemoryAccess : protected PCI::Access {
+class PCI::MemoryAccess : public PCI::Access {
 
 public:
     explicit MemoryAccess(ACPI_MCFG* mcfg_table);
