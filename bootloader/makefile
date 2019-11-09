@@ -9,9 +9,10 @@ BOOTLOADER_OBJS = \
 	Display/Protocols/StandardVGA.o \
 	Display/Protocols/StandardVESA.o \
 	Display/Protocols/FramebufferResolution.o \
-	ACPI/RSDP.o \
-	ACPI/XSDT.o \
-	ACPI/RSDT.o \
+	ACPI/ACPIManager.o \
+	ACPI/RootSystemDescriptorTable.o \
+	ACPI/ExtendedSystemDescriptorTable.o \
+	ACPI/RootSystemDescriptionPointer.o \
 	Disk/Disk.o \
 	Disk/StorageDevice.o \
 	Disk/IDE/IDEController.o \
@@ -20,7 +21,6 @@ BOOTLOADER_OBJS = \
 	Disk/AHCI/SATADevice.o \
 	Disk/AHCI/SATAPIDevice.o \
 	Disk/AHCI/AHCIController.o \
-	Partition/Partition.o \
 	Filesystem/LinuxFilesystems/Ext2Filesystem.o \
 	Kernels/MultibootKernel.o \
 	Parsers/ELF/ELF32Parser.o \
