@@ -43,4 +43,11 @@ namespace IO
                    : "Nd"(port) );
         return ret;
     }
+    inline void repeated_inw(uint16_t port, uint16_t* buffer, int buffer_size)
+    {
+        asm volatile("rep insw"
+                     : "+D"(buffer), "+c"(buffer_size)
+                     : "d"(port)
+                     : "memory");
+    }
 }
