@@ -17,7 +17,7 @@ bootloader:
 bootstrapper:
 	@$(MAKE) -C $(BOOTSTRAP)
 etch:
-	# Etch all things together
+	@# Etch all things together
 	@$(ETCHER) status=noxfer conv=notrunc if=$(BIN_DIR)/mbr.bin of=vm.img bs=1 seek=0
 	@$(ETCHER) status=noxfer conv=notrunc if=$(BIN_DIR)/boot32.bin of=vm.img bs=1 seek=1048576
 	@$(ETCHER) status=noxfer conv=notrunc if=$(BIN_DIR)/core.bin of=vm.img bs=1 seek=1056768
