@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <LibC/stdbool.h>
 #include <Disk/GenericDiskController.h>
+#include <Memory/ByteBuffer.h>
 
 #define IDEATA 1
 #define IDEATAPI 2
@@ -26,8 +27,7 @@ public:
 protected:
     uint8_t transfer_mode;
     uint8_t command_set;
-    uint8_t* data_buffer;
-    uint16_t data_buffer_size;
+    ByteBuffer* data_buffer;
     void set_sector_size(uint16_t sector_size);
     uint16_t sector_size;
     uint32_t cached_data[2];
