@@ -285,30 +285,17 @@ public:
     AHCIController(PCI::Device* device,PCI::Access* access);
     ~AHCIController();
     bool probe_port_connected(uint8_t port) override;
-    bool read(uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount) override;
-    bool read_atapi(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
+    bool read(uint8_t transfer_mode,uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size) override;
     uint16_t get_controller_type() override;
     uint16_t get_logical_sector_size(uint8_t port) override;
-    uint16_t get_physical_sector_size(uint8_t port) override;
-    uint8_t get_physical_logical_sector_alignment(uint8_t port) override;
 private:
     void initialize(PCI::Device* device,PCI::Access* access);
-    bool small_read(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
-    void transfer_data(uint16_t offset,uint16_t bytesCount,uint8_t* buf);
-
-    bool read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t bytesCount);
-
+    bool read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size);
+    bool ata_identify(uint8_t port_number,uint16_t* buf);
+    bool atapi_identify(uint8_t port_number,uint16_t* buf);
+    
     AHCI::HBA_PORT* get_port(uint8_t port);
     int find_freeslot(AHCI::HBA_PORT* port);
-
-    uint16_t get_sectors_per_bytes_count(uint8_t port,uint16_t bytesCount);
-    bool identify_atapi(uint8_t port_number,uint16_t* buf);
-    bool identify(uint8_t port_number,uint16_t* buf);
-
-    char cached_identify_data[sizeof(ATA_IDENTIFY_DATA)];
+    ATA_IDENTIFY_DATA cached_identify_data;
     AHCI::HBA_MEM* hba;
-    PCI::Access* access;
-    PCI::Device* device;
-    uint8_t* tmpbuffer;
-    uint16_t tmpbuffer_size;
 };
