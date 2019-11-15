@@ -10,6 +10,7 @@
 #include <Memory/Node.h>
 
 #include <ACPI/ACPIManager.h>
+#include <Display/Monitors/Print.h>
 
 PCI::Access* PCI::get_access()
 {
@@ -53,9 +54,11 @@ List<PCI::Device>* PCI::enum_devices(PCI::Access* access)
 
 PCI::Access* PCI::get_nonpcie_interface()
 {
+    stdout::print("pci: using x86-io to access configuration space\n");
     return new PCI::IOAccess();
 }
 PCI::Access* PCI::get_pcie_interface(ACPI_MCFG* mcfg)
 {
+    stdout::print("pci: using memory mapped region to access configuration space\n");
     return new PCI::MemoryAccess(mcfg);
 }
