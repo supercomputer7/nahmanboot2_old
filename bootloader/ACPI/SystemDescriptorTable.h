@@ -10,7 +10,7 @@ public:
     {
 
     }
-    virtual ACPITableHeader* get_table(const char* signature)
+    virtual ACPITableHeader* get_table(__attribute__((unused)) const char* signature)
     {
         return nullptr;
     }

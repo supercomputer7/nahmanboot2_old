@@ -6,7 +6,7 @@ RootSystemDescriptorTable::RootSystemDescriptorTable(ACPI_RSDT* rsdt) : SystemDe
 }
 ACPITableHeader* RootSystemDescriptorTable::get_table(const char* signature)
 {
-    for (int i = 0; i < (get_rsdt()->h.Length - sizeof(get_rsdt()->h)) / sizeof(uint32_t); ++i)
+    for (int i = 0; i < static_cast<int>((get_rsdt()->h.Length - sizeof(get_rsdt()->h)) / sizeof(uint32_t)); i++)
     {
         ACPITableHeader* h = (ACPITableHeader *)get_rsdt()->PointerToOtherSDT[i];
         if (strncmp(h->Signature, signature, 4))
