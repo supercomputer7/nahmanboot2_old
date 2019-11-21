@@ -3,13 +3,9 @@
 #include <Memory/Allocator.h>
 #include <Memory/E820.h>
 
-#define BumpAllocatorLocation 0x2000
-#define DMABumpAllocatorLocation 0x2500
-#define CacheBumpAllocationLocation 0x3000
-#define AlignedBumpAllocationLocation 0x3500
-
-#define E820_MemoryMapLocationDescriptor 0x20000
+#define E820_MemoryMapLocationDescriptor 0x60000
 #define DMARegionSize 16384
+#define PageRegionSize 4096
 #define NumberOfDMARegions 200
 
 void kmalloc_init(uint32_t addr);
@@ -27,6 +23,8 @@ void* kcalloc_aligned();
 void* kmalloc(size_t size);
 void* kcalloc(size_t size);
 void* current_allocation();
+
+BumpAllocator* allocators();
 
 inline void* operator new(size_t, void* p) { return p; }
 inline void* operator new[](size_t, void* p) { return p; }
