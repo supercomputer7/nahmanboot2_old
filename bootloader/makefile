@@ -34,7 +34,8 @@ BOOTLOADER_OBJS = \
 	PCI/MemoryAccess.o \
 	PCI/IOAccess.o \
 	PCI/Device.o \
-	LibC/stdstring.o
+	LibC/stdstring.o \
+	LibC/icxxabi.o
 
 OUTPUT = core.bin
 CXXFLAGS = -ffreestanding -O2 -Wall -Wextra -fno-exceptions -fno-rtti
