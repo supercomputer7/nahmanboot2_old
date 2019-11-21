@@ -1,16 +1,13 @@
 #pragma once
 #include <stdint.h>
 #include <LibC/stdbool.h>
-
-#include <stdint.h>
-#include <LibC/stdstring.h>
-#include <Partition/Partition.h>
+#include <Partition/GenericStoragePartition.h>
 #include <Filesystem/GenericFilesystems/GenericFilesystem.h>
-#include <Memory/malloc.h>
 
 namespace Ext2
 {
-#define Ext2FS_Location_By_Bytes 1024
+#define Ext2FS_Signature 0xef53
+#define Ext2FS_Superblock_Offset 1024
 #define Ext2FS_Base_Blocksize 1024
 #define Ext2FS_Inode_Fixed_Size 128
 #define Ext2FS_Root_Directory_Inode 2
@@ -230,12 +227,12 @@ typedef enum
 
 }
 
-class Ext2Filesystem : protected GenericFilesystem {
+class Ext2Filesystem : public GenericFilesystem {
 
 public:
     ~Ext2Filesystem();
     //Ext2Filesystem(DevicePartition* partition);
-    void initialize(DevicePartition* partition) override;
+    void initialize(GenericStoragePartition& partition) override;
     uint32_t get_file_size(const char* filename) override;
     bool read(const char* filename,uint16_t* buf,uint32_t bytesCount) override;
     
@@ -246,10 +243,10 @@ private:
 
     uint32_t get_inode_filesize(uint32_t inode);
     
-    Ext2::Extended_Superblock* get_superblock();
-    Ext2::Inode* get_cached_inode();
+    Ext2::Extended_Superblock& get_superblock();
+    Ext2::Inode& get_cached_inode();
     char* get_cached_block();
-    Ext2::BlockGroupDescriptor* get_cached_blockgroup();
+    Ext2::BlockGroupDescriptor& get_cached_blockgroup();
 
     void read_inode_data(uint32_t inode,char* buf,uint32_t bytesCount);
     void read_inode(uint32_t inode);
@@ -277,19 +274,18 @@ private:
     uint32_t get_inode_count_blkpointers(uint32_t inode);
     uint32_t get_blkpointers_count_by_bytes(uint32_t bytesCount);
 
-    uint16_t block_size;
+    uint16_t m_block_size;
+    char m_cached_superblock[512];
+    char m_cached_blockgroup[sizeof(Ext2::BlockGroupDescriptor)];
+    char* m_cached_inode;
 
-    char cached_superblock[512];
-    char cached_blockgroup[sizeof(Ext2::BlockGroupDescriptor)];
-    char* cached_inode;
+    uint32_t m_cached_data_block_number;
+    char* m_cached_data_block;
 
-    uint32_t cached_data_block_number;
-    char* cached_data_block;
-
-    uint32_t cached_block_number;
-    char* cached_block;
-    uint32_t cached_block2_number;
-    char* cached_block2;
-    uint32_t cached_block3_number;
-    char* cached_block3;
+    uint32_t m_cached_block_number;
+    char* m_cached_block;
+    uint32_t m_cached_block2_number;
+    char* m_cached_block2;
+    uint32_t m_cached_block3_number;
+    char* m_cached_block3;
 };
