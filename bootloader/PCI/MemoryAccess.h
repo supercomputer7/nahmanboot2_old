@@ -6,7 +6,7 @@
 class PCI::MemoryAccess : public PCI::Access {
 
 public:
-    explicit MemoryAccess(ACPI_MCFG* mcfg_table);
+    explicit MemoryAccess(ACPI_MCFG& mcfg_table);
     ~MemoryAccess();
     void write(uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset,uint16_t value) override;
     uint16_t read(uint32_t seg,uint8_t bus,uint8_t device,uint8_t func,uint8_t offset) override;
@@ -15,6 +15,6 @@ public:
     uint8_t get_segment_start_bus(uint32_t segment) override;
     uint8_t get_segment_end_bus(uint32_t segment) override;
 private:
-    void initialize(ACPI_MCFG* mcfg_table);
+    void initialize(ACPI_MCFG& mcfg_table);
     ACPI_MCFG* mcfg_table;
 };
