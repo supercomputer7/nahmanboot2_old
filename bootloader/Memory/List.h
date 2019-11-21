@@ -68,11 +68,18 @@ public:
         }
         this->count++;
     }
-    void adpot_list(List<T>* list)
+    void adopt_list(List<T>* list)
     {
         for(uint32_t i=0; i < list->get_count(); i++)
         {
             this->insert_node(list->get_node(i)->get_object());
+        }
+    }
+    void adopt_ref_list(List<T>& list)
+    {
+        for(uint32_t i=0; i < list.get_count(); i++)
+        {
+            this->insert_node(list.get_node(i)->get_object());
         }
     }
 private:

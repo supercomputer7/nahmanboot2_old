@@ -30,7 +30,7 @@ public:
     }
     uint8_t operator[](int i)
     {
-        if(i < buffer_size)
+        if(i < static_cast<int>(buffer_size))
             return static_cast<uint8_t*>(this->ptr)[i];
         else
             return 0;
@@ -48,6 +48,7 @@ public:
             reset_offset_pointer();
             byte = static_cast<uint8_t*>(this->ptr)[byte_pointer];
         }
+        return byte;
     }
     void reset_offset_pointer()
     {
