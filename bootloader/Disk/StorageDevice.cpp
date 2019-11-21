@@ -17,7 +17,7 @@ void StorageDevice::set_sector_size(uint16_t sector_size)
 void StorageDevice::small_read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
     disk_controller->read(this->transfer_mode,this->command_set,this->port,lbal,lbah,(uint16_t*)this->data_buffer->get_ptr(),SECTORS_COUNT_BUFFER,this->sector_size);
-    strcopy((char*)(this->data_buffer->get_ptr()+bytesOffset),(char*)buf,bytesCount);
+    strcopy((char*)((uint32_t)get_buffer_data()+bytesOffset),(char*)buf,bytesCount);
 }
 void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
 {
@@ -50,9 +50,13 @@ void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16
         }
     }
 }
-void StorageDevice::read_to_cache(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset)
+void StorageDevice::read_cache_one_sector(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset)
 {
     this->read(lbal,lbah,bytesOffset,(uint16_t*)this->data_buffer->get_ptr(),sector_size);
+}
+void* StorageDevice::get_buffer_data()
+{
+    return this->data_buffer->get_ptr();
 }
 uint16_t StorageDevice::get_sector_size()
 {

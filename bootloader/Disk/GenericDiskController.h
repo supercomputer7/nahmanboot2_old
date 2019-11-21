@@ -30,15 +30,15 @@ public:
     {
         return GenericStorageController;
     }
-    virtual bool probe_port_connected(__attribute__((unused)) uint8_t port)
+    virtual bool probe_port_connected(__attribute__((unused)) uint32_t port)
     {
         return false;
     }
-    virtual bool read(__attribute__((unused)) uint8_t transfer_mode,__attribute__((unused)) uint8_t commandset,__attribute__((unused)) uint8_t port_number,__attribute__((unused)) uint32_t lbal,__attribute__((unused)) uint32_t lbah,__attribute__((unused)) uint16_t* buf,__attribute__((unused)) uint16_t sectors_count,__attribute__((unused)) uint16_t sector_size)
+    virtual bool read(__attribute__((unused)) uint8_t transfer_mode,__attribute__((unused)) uint8_t commandset,__attribute__((unused)) uint32_t port_number,__attribute__((unused)) uint32_t lbal,__attribute__((unused)) uint32_t lbah,__attribute__((unused)) uint16_t* buf,__attribute__((unused)) uint16_t sectors_count,__attribute__((unused)) uint16_t sector_size)
     {
         return false;
     }
-    virtual uint16_t get_logical_sector_size(__attribute__((unused)) uint8_t port)
+    virtual uint16_t get_logical_sector_size(__attribute__((unused)) uint32_t port)
     {
         return 0x0;
     }

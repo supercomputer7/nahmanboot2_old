@@ -282,20 +282,23 @@ namespace AHCI
 class AHCIController : public GenericDiskController {
 
 public:
-    AHCIController(PCI::Device* device,PCI::Access* access);
+    AHCIController(PCI::Device& device,PCI::Access& access);
     ~AHCIController();
-    bool probe_port_connected(uint8_t port) override;
-    bool read(uint8_t transfer_mode,uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size) override;
+    bool probe_port_connected(uint32_t port) override;
+    bool read(uint8_t transfer_mode,uint8_t commandset,uint32_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size) override;
     uint16_t get_controller_type() override;
-    uint16_t get_logical_sector_size(uint8_t port) override;
+    uint16_t get_logical_sector_size(uint32_t port) override;
 private:
-    void initialize(PCI::Device* device,PCI::Access* access);
+    void initialize(PCI::Device& device,PCI::Access& access);
     bool read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size);
     bool ata_identify(uint8_t port_number,uint16_t* buf);
     bool atapi_identify(uint8_t port_number,uint16_t* buf);
     
-    AHCI::HBA_PORT* get_port(uint8_t port);
-    int find_freeslot(AHCI::HBA_PORT* port);
-    ATA_IDENTIFY_DATA cached_identify_data;
-    AHCI::HBA_MEM* hba;
+    AHCI::HBA_PORT& get_port(uint8_t port);
+    AHCI::HBA_CMD_HEADER& get_cmd_header(AHCI::HBA_PORT& port,int slot);
+    AHCI::HBA_CMD_TBL& get_cmd_table(AHCI::HBA_CMD_HEADER& cmd_header);
+    int find_freeslot(AHCI::HBA_PORT& port);
+    ATA_IDENTIFY_DATA m_cached_identify_data;
+    AHCI::HBA_MEM& get_hba();
+    AHCI::HBA_MEM* m_hba;
 };

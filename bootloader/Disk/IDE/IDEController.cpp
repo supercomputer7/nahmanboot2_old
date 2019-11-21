@@ -2,7 +2,7 @@
 #include <IO/IO.h>
 #include <Memory/malloc.h>
 
-IDEController::IDEController(PCI::Device* device,PCI::Access* access) : GenericDiskController()
+IDEController::IDEController(PCI::Device& device,PCI::Access& access) : GenericDiskController()
 {
     this->initialize(device,access);
 }
@@ -10,55 +10,55 @@ uint16_t IDEController::get_controller_type()
 {
 	return IDEStorageController;
 }
-void IDEController::initialize(PCI::Device* device,PCI::Access* access)
+void IDEController::initialize(PCI::Device& device,PCI::Access& access)
 {
-    this->device = device;
-    this->access = access;
+    this->device = &device;
+    this->access = &access;
     uint16_t port1 = PCI::read(access,
-                            device->get_segment(),
-                            device->get_bus(),
-                            device->get_device_number(),
-                            device->get_function_number(),
+                            device.get_segment(),
+                            device.get_bus(),
+                            device.get_device_number(),
+                            device.get_function_number(),
                             0x10
                             );
     uint16_t port2 = PCI::read(access,
-                            device->get_segment(),
-                            device->get_bus(),
-                            device->get_device_number(),
-                            device->get_function_number(),
+                            device.get_segment(),
+                            device.get_bus(),
+                            device.get_device_number(),
+                            device.get_function_number(),
                             0x14
                             );
     if(port1 == 0x1 || port1 == 0x0)
-        this->primary_bus_io_port = ATA_PRIMARY_BUS_BASEIO;
+        this->m_primary_bus_io_port = ATA_PRIMARY_BUS_BASEIO;
     else
-        this->primary_bus_io_port = port1;
+        this->m_primary_bus_io_port = port1;
     if(port2 == 0x1 || port2 == 0x0)
-        this->secondary_bus_io_port = ATA_SECONDARY_BUS_BASEIO;
+        this->m_secondary_bus_io_port = ATA_SECONDARY_BUS_BASEIO;
     else
-        this->secondary_bus_io_port = port2;
+        this->m_secondary_bus_io_port = port2;
 
     this->bus_master_register = PCI::read(access,
-                                device->get_segment(),
-                                device->get_bus(),
-                                device->get_device_number(),
-                                device->get_function_number(),        
+                                device.get_segment(),
+                                device.get_bus(),
+                                device.get_device_number(),
+                                device.get_function_number(),        
                                 0x20) | 
                                 PCI::read(access,
-                                device->get_segment(),
-                                device->get_bus(),
-                                device->get_device_number(),
-                                device->get_function_number(),        
+                                device.get_segment(),
+                                device.get_bus(),
+                                device.get_device_number(),
+                                device.get_function_number(),        
                                 0x22);
-    this->prdt = (ATA_DMA_PRDT*)dma_calloc();
+    this->m_prdt = (ATA_DMA_PRDT*)dma_calloc();
     this->default_transfer_mode = PIOTransferMode;
 }
 bool IDEController::ata_identify(bool is_primary,bool is_slave,uint16_t* buf)
 {
     uint16_t port;
     if(is_primary)
-        port = this->primary_bus_io_port;
+        port = this->m_primary_bus_io_port;
     else
-        port = this->secondary_bus_io_port;
+        port = this->m_secondary_bus_io_port;
     
 
     if(is_slave)
@@ -93,23 +93,23 @@ bool IDEController::ata_identify(bool is_primary,bool is_slave,uint16_t* buf)
     }
     return true;
 }
-bool IDEController::probe_port_connected(uint8_t port)
+bool IDEController::probe_port_connected(uint32_t port)
 {
     switch (port)
     {
         case 0:
-            return this->ata_identify(true,false,(uint16_t*)&this->cached_identify_data);
+            return this->ata_identify(true,false,(uint16_t*)&this->m_cached_identify_data);
         case 1:
-            return this->ata_identify(true,true,(uint16_t*)&this->cached_identify_data);
+            return this->ata_identify(true,true,(uint16_t*)&this->m_cached_identify_data);
         case 2:
-            return this->ata_identify(false,false,(uint16_t*)&this->cached_identify_data);
+            return this->ata_identify(false,false,(uint16_t*)&this->m_cached_identify_data);
         case 3:
-            return this->ata_identify(false,true,(uint16_t*)&this->cached_identify_data);
+            return this->ata_identify(false,true,(uint16_t*)&this->m_cached_identify_data);
     }
     return false;
 }
 
-bool IDEController::read(uint8_t transfer_mode,uint8_t commandset,uint8_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size)
+bool IDEController::read(uint8_t transfer_mode,uint8_t commandset,uint32_t port_number,uint32_t lbal,uint32_t lbah,uint16_t* buf,uint16_t sectors_count,uint16_t sector_size)
 {
     if(commandset == ATACommandSet)
     {
@@ -194,14 +194,14 @@ void IDEController::read_28bit(uint8_t transfer_mode,bool is_primary,bool is_sla
 
 void IDEController::enable_pci_bus_master()
 {
-    uint16_t enabled_pci_bus_master = PCI::read(access,
+    uint16_t enabled_pci_bus_master = PCI::read(*access,
             device->get_segment(),
             device->get_bus(),
             device->get_device_number(),
             device->get_function_number(),
             0x4) | (1 << 2);
 
-    PCI::write(access,
+    PCI::write(*access,
             device->get_segment(),
             device->get_bus(),
             device->get_device_number(),
@@ -212,14 +212,14 @@ void IDEController::enable_pci_bus_master()
 
 void IDEController::disable_pci_bus_master()
 {
-    uint16_t enabled_pci_bus_master = PCI::read(access,
+    uint16_t enabled_pci_bus_master = PCI::read(*access,
             device->get_segment(),
             device->get_bus(),
             device->get_device_number(),
             device->get_function_number(),
             0x4) & (~(1 << 2));
 
-    PCI::write(access,
+    PCI::write(*access,
             device->get_segment(),
             device->get_bus(),
             device->get_device_number(),
@@ -231,10 +231,10 @@ void IDEController::read_ata_dma_lba28(bool is_primary,bool is_slave,uint32_t lb
 {
     /* TODO: Check if bus master register is memory mapped or IO mapped */
     this->enable_pci_bus_master();
-    prdt->byte_count = (sectors_count * sector_size);
-    prdt->data_buffer = (uint32_t)buf;
-    prdt->reserved = 0x8000;
-    uint32_t prdt_addr = (uint32_t)this->prdt;
+    get_prdt().byte_count = (sectors_count * sector_size);
+    get_prdt().data_buffer = (uint32_t)buf;
+    get_prdt().reserved = 0x8000;
+    uint32_t prdt_addr = (uint32_t)this->m_prdt;
 
     uint16_t base = this->bus_master_register & (0xFFF0);
     if(is_primary == false)
@@ -246,9 +246,9 @@ void IDEController::read_ata_dma_lba28(bool is_primary,bool is_slave,uint32_t lb
     
     uint16_t port;
     if(is_primary)
-        port = this->primary_bus_io_port;
+        port = this->m_primary_bus_io_port;
     else
-        port = this->secondary_bus_io_port;
+        port = this->m_secondary_bus_io_port;
 
     if(is_slave)
         IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
@@ -292,10 +292,10 @@ void IDEController::read_ata_dma_lba48(bool is_primary,bool is_slave,uint32_t lb
 {
     /* TODO: Check if bus master register is memory mapped or IO mapped */
     this->enable_pci_bus_master();
-    prdt->byte_count = (sectors_count * sector_size);
-    prdt->data_buffer = (uint32_t)buf;
-    prdt->reserved = 0x8000;
-    uint32_t prdt_addr = (uint32_t)this->prdt;
+    get_prdt().byte_count = (sectors_count * sector_size);
+    get_prdt().data_buffer = (uint32_t)buf;
+    get_prdt().reserved = 0x8000;
+    uint32_t prdt_addr = (uint32_t)this->m_prdt;
 
     uint16_t base = this->bus_master_register & (0xFFF0);
     if(is_primary == false)
@@ -307,9 +307,9 @@ void IDEController::read_ata_dma_lba48(bool is_primary,bool is_slave,uint32_t lb
     
     uint16_t port;
     if(is_primary)
-        port = this->primary_bus_io_port;
+        port = this->m_primary_bus_io_port;
     else
-        port = this->secondary_bus_io_port;
+        port = this->m_secondary_bus_io_port;
 
     if(is_slave)
         IO::outb(port + ATA_REG_DATA, 0xE0 | ((lbal >> 24) & 0x0F));
@@ -353,9 +353,9 @@ void IDEController::read_ata_pio_lba28(bool is_primary,bool is_slave,uint32_t lb
 {
     uint16_t port;
     if(is_primary)
-        port = this->primary_bus_io_port;
+        port = this->m_primary_bus_io_port;
     else
-        port = this->secondary_bus_io_port;
+        port = this->m_secondary_bus_io_port;
 
     uint16_t words_count = sector_size/sizeof(uint16_t);
 
@@ -404,9 +404,9 @@ void IDEController::read_ata_pio_lba48(bool is_primary,bool is_slave,uint32_t lb
 {
     uint16_t port;
     if(is_primary)
-        port = this->primary_bus_io_port;
+        port = this->m_primary_bus_io_port;
     else
-        port = this->secondary_bus_io_port;
+        port = this->m_secondary_bus_io_port;
 
     uint16_t words_count = sector_size/sizeof(uint16_t);
 
@@ -459,11 +459,11 @@ void IDEController::read_ata_pio_lba48(bool is_primary,bool is_slave,uint32_t lb
 void IDEController::do_400ns_delay()
 {
     for(int i = 0;i < 4; i++)
-		IO::inb(this->primary_bus_io_port + ATA_REG_ALTSTATUS);
+		IO::inb(this->m_primary_bus_io_port + ATA_REG_ALTSTATUS);
 }
 
 
-uint16_t IDEController::get_logical_sector_size(uint8_t port)
+uint16_t IDEController::get_logical_sector_size(uint32_t port)
 {
     switch (port)
     {
@@ -481,11 +481,15 @@ uint16_t IDEController::get_logical_sector_size(uint8_t port)
 
 uint16_t IDEController::native_get_logical_sector_size(bool is_primary,bool is_slave)
 {
-    this->ata_identify(is_primary,is_slave,(uint16_t*)&this->cached_identify_data);
-    if((this->cached_identify_data.physical_logical_sector & (1 << 12)) == 0)
+    this->ata_identify(is_primary,is_slave,(uint16_t*)&this->m_cached_identify_data);
+    if((this->m_cached_identify_data.physical_logical_sector & (1 << 12)) == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
-    if(this->cached_identify_data.logical_sector_size[0] == 0)
+    if(this->m_cached_identify_data.logical_sector_size[0] == 0)
         return ATA_LOGICAL_SECTOR_SIZE;
     else
-        return this->cached_identify_data.logical_sector_size[0] << 1;
+        return this->m_cached_identify_data.logical_sector_size[0] << 1;
+}
+ATA_DMA_PRDT& IDEController::get_prdt()
+{
+    return *this->m_prdt;
 }
