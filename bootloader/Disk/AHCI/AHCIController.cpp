@@ -76,7 +76,7 @@ bool AHCIController::read_ata(uint8_t port_number,uint32_t lbal,uint32_t lbah,ui
 	cmdtbl.prdt_entry[i].info = (((sectors_count*sector_size)-1) & (0x3FFFFF)) | (1<<31);
 
 	// Setup command
-	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl.cfis);
+	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(cmdtbl.cfis);
 	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
 	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
 	cmdfis->h.attrs = 0x80;	// Command
@@ -171,13 +171,12 @@ bool AHCIController::ata_identify(uint8_t port_number,uint16_t* buf)
 	cmdheader.command = sizeof(AHCI::FIS_REG_H2D)/sizeof(uint32_t); // Command FIS size
 	cmdheader.prdtl = 1; // PRDT entries count
 
-
 	AHCI::HBA_CMD_TBL& cmdtbl = get_cmd_table(cmdheader);
 	cmdtbl.prdt_entry[0].dba = (uint32_t)buf;
     cmdtbl.prdt_entry[0].info = ATA_LOGICAL_SECTOR_SIZE-1;
  
 	// Setup command
-	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl.cfis);
+	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(cmdtbl.cfis);
 	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
 	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
 	cmdfis->command = ATA_CMD_IDENTIFY;
@@ -238,7 +237,7 @@ bool AHCIController::atapi_identify(uint8_t port_number,uint16_t* buf)
     cmdtbl.prdt_entry[0].info = ATA_LOGICAL_SECTOR_SIZE-1;
  
 	// Setup command
-	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(&cmdtbl.cfis);
+	AHCI::FIS_REG_H2D *cmdfis = (AHCI::FIS_REG_H2D*)(cmdtbl.cfis);
 	memset((uint8_t*)cmdfis,0,sizeof(AHCI::FIS_REG_H2D));
 	cmdfis->h.fis_type = AHCI::FIS_TYPE_REG_H2D;
 	cmdfis->command = ATA_CMD_IDENTIFY;
@@ -290,5 +289,6 @@ AHCI::HBA_CMD_HEADER& AHCIController::get_cmd_header(AHCI::HBA_PORT& port,int sl
 }
 AHCI::HBA_CMD_TBL& AHCIController::get_cmd_table(AHCI::HBA_CMD_HEADER& cmd_header)
 {
-	return (AHCI::HBA_CMD_TBL&)cmd_header.ctba;
+	AHCI::HBA_CMD_TBL* cmd_tbl = (AHCI::HBA_CMD_TBL*)cmd_header.ctba;
+	return *cmd_tbl;
 }
