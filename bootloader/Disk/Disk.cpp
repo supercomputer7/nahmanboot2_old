@@ -14,17 +14,22 @@ List<GenericDiskController>& Disk::enum_storage_controllers(List<PCI::Device>& d
         return *list;
     for(uint32_t i = 0; i < devices.get_count(); i++)
     {
-        GenericDiskController* controller;
         
-        if(devices.get_node(i)->get_object()->get_subclass() == 0x1)
-            controller = new IDEController(*devices.get_node(i)->get_object(),access);
-        else if (devices.get_node(i)->get_object()->get_subclass() == 0x6)
-            controller = new AHCIController(*devices.get_node(i)->get_object(),access);            
-        else
-            controller = new GenericDiskController();
-        list->insert_node(controller);
+        GenericDiskController* controller = detect_storage_controller(*devices.get_node(i)->get_object(),access);
+        if(controller != nullptr)
+            list->insert_node(controller);
     }
     return *list;
+}
+
+GenericDiskController* Disk::detect_storage_controller(PCI::Device& device,PCI::Access& access)
+{
+    GenericDiskController* controller = nullptr;
+    if(device.get_subclass() == 0x1)
+        controller = new IDEController(device,access);
+    else if (device.get_subclass() == 0x6)
+        controller = new AHCIController(device,access);
+    return controller;
 }
 
 List<StorageDevice>& Disk::enum_storage_controller(Node<GenericDiskController>& storage_controller)
