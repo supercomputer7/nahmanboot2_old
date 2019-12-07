@@ -3,7 +3,7 @@
 #include <Memory/malloc.h>
 #define BYTES_PER_PRDT 8192
 
-AHCIController::AHCIController(PCI::Device& device,PCI::Access& access) : GenericDiskController()
+AHCIController::AHCIController(PCI::Device& device,PCI::Access& access) : GenericDiskController(device,access)
 {
 	this->initialize(device,access);
 }
@@ -14,8 +14,7 @@ uint16_t AHCIController::get_controller_type()
 }
 void AHCIController::initialize(PCI::Device& device,PCI::Access& access)
 {
-    this->access = &access;
-    this->device = &device;
+    
     this->m_hba = (AHCI::HBA_MEM*)(
                         PCI::read(access,
                         device.get_segment(),

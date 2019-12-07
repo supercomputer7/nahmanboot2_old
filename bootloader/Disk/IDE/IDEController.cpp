@@ -2,7 +2,7 @@
 #include <IO/IO.h>
 #include <Memory/malloc.h>
 
-IDEController::IDEController(PCI::Device& device,PCI::Access& access) : GenericDiskController()
+IDEController::IDEController(PCI::Device& device,PCI::Access& access) : GenericDiskController(device,access)
 {
     this->initialize(device,access);
 }
@@ -12,8 +12,6 @@ uint16_t IDEController::get_controller_type()
 }
 void IDEController::initialize(PCI::Device& device,PCI::Access& access)
 {
-    this->device = &device;
-    this->access = &access;
     uint16_t port1 = PCI::read(access,
                             device.get_segment(),
                             device.get_bus(),
@@ -50,7 +48,7 @@ void IDEController::initialize(PCI::Device& device,PCI::Access& access)
                                 device.get_function_number(),        
                                 0x22);
     this->m_prdt = (ATA_DMA_PRDT*)dma_calloc();
-    this->default_transfer_mode = PIOTransferMode;
+    this->default_transfer_mode = DMATransferMode;
 }
 bool IDEController::ata_identify(bool is_primary,bool is_slave,uint16_t* buf)
 {
@@ -194,36 +192,36 @@ void IDEController::read_28bit(uint8_t transfer_mode,bool is_primary,bool is_sla
 
 void IDEController::enable_pci_bus_master()
 {
-    uint16_t enabled_pci_bus_master = PCI::read(*access,
-            device->get_segment(),
-            device->get_bus(),
-            device->get_device_number(),
-            device->get_function_number(),
+    uint16_t enabled_pci_bus_master = PCI::read(m_access,
+            m_device.get_segment(),
+            m_device.get_bus(),
+            m_device.get_device_number(),
+            m_device.get_function_number(),
             0x4) | (1 << 2);
 
-    PCI::write(*access,
-            device->get_segment(),
-            device->get_bus(),
-            device->get_device_number(),
-            device->get_function_number(),
+    PCI::write(m_access,
+            m_device.get_segment(),
+            m_device.get_bus(),
+            m_device.get_device_number(),
+            m_device.get_function_number(),
             0x4,enabled_pci_bus_master);
 
 }
 
 void IDEController::disable_pci_bus_master()
 {
-    uint16_t enabled_pci_bus_master = PCI::read(*access,
-            device->get_segment(),
-            device->get_bus(),
-            device->get_device_number(),
-            device->get_function_number(),
+    uint16_t enabled_pci_bus_master = PCI::read(m_access,
+            m_device.get_segment(),
+            m_device.get_bus(),
+            m_device.get_device_number(),
+            m_device.get_function_number(),
             0x4) & (~(1 << 2));
 
-    PCI::write(*access,
-            device->get_segment(),
-            device->get_bus(),
-            device->get_device_number(),
-            device->get_function_number(),
+    PCI::write(m_access,
+            m_device.get_segment(),
+            m_device.get_bus(),
+            m_device.get_device_number(),
+            m_device.get_function_number(),
             0x4,enabled_pci_bus_master);
 }
 
@@ -390,7 +388,7 @@ void IDEController::read_ata_pio_lba28(bool is_primary,bool is_slave,uint32_t lb
             for(int sector=0; sector<sectors_count; ++sector)
             {
                 IO::repeated_inw(port + ATA_REG_DATA,(buf + (words_count*sector)),words_count);
-                this->do_400ns_delay();
+                //this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
@@ -446,7 +444,7 @@ void IDEController::read_ata_pio_lba48(bool is_primary,bool is_slave,uint32_t lb
             for(int sector=0; sector<sectors_count; ++sector)
             {
                 IO::repeated_inw(port + ATA_REG_DATA,(buf + (words_count*sector)),words_count);
-                this->do_400ns_delay();
+                //this->do_400ns_delay();
                 input = IO::inb(port + ATA_REG_STATUS);
                 while(((input & 0x80) != 0) && ((input & 0x8) == 0)) // wait for DRQ to set, BSY to clear
                 {
