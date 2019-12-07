@@ -19,7 +19,7 @@ void StorageDevice::small_read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,
     disk_controller->read(this->transfer_mode,this->command_set,this->port,lbal,lbah,(uint16_t*)this->data_buffer->get_ptr(),SECTORS_COUNT_BUFFER,this->sector_size);
     strcopy((char*)((uint32_t)get_buffer_data()+bytesOffset),(char*)buf,bytesCount);
 }
-void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount)
+void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint32_t bytesCount)
 {
     uint32_t lbal_offsetted = lbal + (bytesOffset / this->sector_size);
     uint16_t offset_in_first_sector = (bytesOffset % this->sector_size);
@@ -31,23 +31,16 @@ void StorageDevice::read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16
     else
     {
         this->small_read(lbal_offsetted,lbah,offset_in_first_sector,buf,(this->data_buffer->get_buffer_size() - offset_in_first_sector));
-        uint16_t bytes_to_read = (bytesCount - this->data_buffer->get_buffer_size()) + offset_in_first_sector;
-        int i = 0;
-        while(bytes_to_read > 0)
+        buf += this->data_buffer->get_buffer_size() >> 1;
+        uint32_t bytes_to_read = (bytesCount - this->data_buffer->get_buffer_size()) + offset_in_first_sector;
+        while(bytes_to_read >= this->data_buffer->get_buffer_size())
         {
             lbal_offsetted += (this->data_buffer->get_buffer_size() / this->sector_size);
-            if(bytes_to_read >= this->data_buffer->get_buffer_size())
-            {
-                
-                this->small_read(lbal_offsetted,lbah,0,(uint16_t*)(buf + (SECTORS_COUNT_BUFFER*i)),this->data_buffer->get_buffer_size());
-            }
-            else
-            {
-                this->small_read(lbal_offsetted,lbah,0,(uint16_t*)(buf +  (SECTORS_COUNT_BUFFER*i)),bytes_to_read);
-            }
-            i++;
+            this->small_read(lbal_offsetted,lbah,0,buf,this->data_buffer->get_buffer_size());
             bytes_to_read -= this->data_buffer->get_buffer_size();
+            buf += this->data_buffer->get_buffer_size() >> 1;
         }
+        this->small_read(lbal_offsetted,lbah,0,buf,bytes_to_read);
     }
 }
 void StorageDevice::read_cache_one_sector(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset)

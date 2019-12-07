@@ -17,7 +17,7 @@ class StorageDevice {
 public:
     StorageDevice(GenericDiskController* disk_controller,uint32_t port);
     ~StorageDevice();
-    virtual void read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint16_t bytesCount);
+    virtual void read(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset,uint16_t* buf,uint32_t bytesCount);
     virtual void read_cache_one_sector(uint32_t lbal,uint32_t lbah,uint32_t bytesOffset);
     virtual uint16_t get_hardware_protocol();
     uint16_t get_sector_size();
